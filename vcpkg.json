@@ -1,0 +1,15 @@
+{
+    "name": "fastcsv",
+    "version": "0.0.1",
+    "dependencies": [
+        "fmt",
+        "gtest"
+    ],
+    "builtin-baseline": "9776b51b557bb2c20d79cf541f124c48d0c2c720",
+    "overrides": [
+        {
+            "name": "fmt",
+            "version": "8.0.1"
+        }
+    ]
+}
