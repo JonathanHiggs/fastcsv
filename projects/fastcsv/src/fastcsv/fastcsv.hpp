@@ -279,7 +279,7 @@ namespace fastcsv
             auto value = iterator.consume();
             if (value.empty()) { return std::string(); }
 
-            if (value.size() == 1ul) { return std::string("\""); }
+            if (value.size() == 1ul && value[0] == '"') { return std::string("\""); }
 
             if (value[0] == '"' && value[value.size() - 1ul] == '"')
             {
@@ -309,7 +309,7 @@ namespace fastcsv
 
             if (!first) { stream << detail::default_column_delimiter; }
 
-            to_csv<TWrite>{ stream, first }(value, std::forward<TArgs>(args)...);
+            to_csv<TWrite>{ stream, true }(value, std::forward<TArgs>(args)...);
 
             first = false;
         }
