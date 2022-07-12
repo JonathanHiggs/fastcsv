@@ -78,6 +78,9 @@
 #if defined(__cpp_lib_to_chars)
     #include <charconv>
 #endif
+#if FASTCSV_HAS_CXX20
+    #include <chrono>
+#endif
 #include <exception>
 #include <filesystem>
 #include <fstream>
@@ -95,7 +98,7 @@ namespace fastcsv
     namespace detail
     {
 
-        inline static constexpr std::string_view csv_extension = "csv";
+        inline static constexpr std::string_view csv_extension = ".csv";
         inline static constexpr char default_column_delimiter = ',';
         inline static constexpr char default_line_delimiter = '\n';
 
@@ -238,44 +241,26 @@ namespace fastcsv
     {
         detail::csv_iterator & iterator;
 
-        template <typename TRead>
-        FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR inline TRead read() const
+        template <typename TRead, typename... TArgs>
+        FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR inline TRead read(TArgs &&... args) const
         {
             if constexpr (std::is_same_v<from_csv<TRead>, decltype(*this)>)
             {
                 throw fastcsv_exception(fmt::format("Recursive call  {} {}", __FILE__, __LINE__));
             }
 
-            return from_csv<TRead>{ iterator }();
+            return from_csv<TRead>{ iterator }(std::forward<TArgs>()...);
         }
 
-        template <typename TRead>
-        FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR inline std::optional<TRead> read_opt() const
+        template <typename TRead, typename... TArgs>
+        FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR inline std::optional<TRead> read_opt(TArgs && ... args) const
         {
             if constexpr (std::is_same_v<from_csv<std::optional<TRead>>, decltype(*this)>)
             {
                 throw fastcsv_exception(fmt::format("Recursive call  {} {}", __FILE__, __LINE__));
             }
 
-            return from_csv<std::optional<TRead>>{ iterator }();
-        }
-
-        template <typename TRead>
-        FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR inline std::optional<TRead> try_read() const
-        {
-            if constexpr (std::is_same_v<from_csv<TRead>, decltype(*this)>)
-            {
-                throw fastcsv_exception(fmt::format("Recursive call  {} {}", __FILE__, __LINE__));
-            }
-
-            try
-            {
-                return std::make_optional<TRead>(from_csv<TRead>{ iterator }());
-            }
-            catch (...)
-            {
-                return std::nullopt;
-            }
+            return from_csv<std::optional<TRead>>{ iterator }(std::forward<TArgs>(args)...);
         }
     };
 
@@ -284,10 +269,15 @@ namespace fastcsv
     {
         FASTCSV_NO_DISCARD inline T operator()() const
         {
-#if defined(__cpp_lib_to_chars)
-            T value;
             auto element = iterator.consume();
-            auto [ptr, errorCode] = std::from_chars(element.data(), element.data() + element.size(), value);
+            return parse(element);
+        }
+
+        FASTCSV_NO_DISCARD inline static T parse(std::string_view element)
+        {
+#if defined(__cpp_lib_to_chars)
+            T result;
+            auto [ptr, errorCode] = std::from_chars(element.data(), element.data() + element.size(), result);
             if (errorCode != std::errc())
             {
                 throw fastcsv_exception(fmt::format(
@@ -299,22 +289,35 @@ namespace fastcsv
                                             __LINE__)
                                             .c_str());
             }
-            return value;
+            return result;
 #else
-            if constexpr (std::is_same_v<T, int>) { return std::stoi(std::string(iterator.consume())); }
-            if constexpr (std::is_same_v<T, long>) { return std::stol(std::string(iterator.consume())); }
-            if constexpr (std::is_same_v<T, long long>) { return std::stoll(std::string(iterator.consume())); }
+            if constexpr (std::is_same_v<T, int>) { return std::stoi(std::string(element)); }
+            if constexpr (std::is_same_v<T, long>) { return std::stol(std::string(element)); }
+            if constexpr (std::is_same_v<T, long long>) { return std::stoll(std::string(element)); }
             if constexpr (std::is_same_v<T, unsigned> || std::is_same_v<T, unsigned long>)
             {
-                return std::stoul(std::string(iterator.consume()));
+                return std::stoul(std::string(element));
             }
-            if constexpr (std::is_same_v<T, unsigned long long>)
-            {
-                return std::stoull(std::string(iterator.consume()));
-            }
-            if constexpr (std::is_same_v<T, float>) { return std::stof(std::string(iterator.consume())); }
-            if constexpr (std::is_same_v<T, double>) { return std::stod(std::string(iterator.consume())); }
+            if constexpr (std::is_same_v<T, unsigned long long>) { return std::stoull(std::string(element)); }
+            if constexpr (std::is_same_v<T, float>) { return std::stof(std::string(element)); }
+            if constexpr (std::is_same_v<T, double>) { return std::stod(std::string(element)); }
 #endif
+        }
+    };
+
+    template <>
+    struct from_csv<char> final : csv_reader
+    {
+        FASTCSV_NO_DISCARD inline char operator()() const
+        {
+            auto value = iterator.consume();
+            if (value.size() != 1ul)
+            {
+                // ToDo:
+                throw fastcsv_exception("");
+            }
+
+            return *value.data();
         }
     };
 
@@ -348,8 +351,7 @@ namespace fastcsv
             if (value == "true" || value == "TRUE" || value == "True") { return true; }
             if (value == "false" || value == "FALSE" || value == "False") { return false; }
 
-            throw fastcsv_exception(
-                fmt::format("Unable to parse bool from '{}'  {} {}", value, __FILE__, __LINE__));
+            throw fastcsv_exception(fmt::format("Unable to parse bool from '{}'  {} {}", value, __FILE__, __LINE__));
         }
     };
 
@@ -367,6 +369,23 @@ namespace fastcsv
             return from_csv<T>{ iterator }();
         }
     };
+
+#if FASTCSV_HAS_CXX20
+    template <>
+    struct from_csv<std::chrono::year_month_day> final : csv_reader
+    {
+        FASTCSV_NO_DISCARD inline std::chrono::year_month_day operator()() const
+        {
+            auto element = iterator.consume();
+
+            if (element.size() != 10ul) { throw fastcsv_exception(""); }
+
+            return std::chrono::year_month_day{ std::chrono::year(from_csv<int>::parse(element.substr(0ul, 4ul))),
+                                                std::chrono::month(from_csv<int>::parse(element.substr(5ul, 2ul))),
+                                                std::chrono::day(from_csv<int>::parse(element.substr(8ul, 2ul))) };
+        }
+    };
+#endif
 
 
     template <typename T, typename = void>
@@ -398,6 +417,12 @@ namespace fastcsv
     {
         inline void operator()(T value) { fmt::print(stream, "{}", value); }
         inline void operator()(T value, std::string_view fmt) { fmt::print(stream, fmt, value); }
+    };
+
+    template <>
+    struct to_csv<char> final : csv_writer
+    {
+        inline void operator()(char value) { stream << value; }
     };
 
     template <>
@@ -441,6 +466,17 @@ namespace fastcsv
         }
     };
 
+#if FASTCSV_HAS_CXX20
+    template <>
+    struct to_csv<std::chrono::year_month_day> final : csv_writer
+    {
+        inline void operator()(std::chrono::year_month_day value)
+        {
+            fmt::print(stream, "{}-{}-{}", value.year().operator int(), value.month().operator unsigned int(), value.day().operator unsigned int());
+        }
+    };
+#endif
+
 
     namespace detail
     {
@@ -462,14 +498,15 @@ namespace fastcsv
         auto data = std::vector<T>();
         auto linesIterator = detail::csv_iterator(content, detail::default_line_delimiter);
 
+        // ToDo: headers
+        linesIterator.advance();
+
         if (linesIterator.current_element_size() != 0ul)
         {
             // Simple heuristic to estimate the total number of lines to avoid lots of vector resizing
             auto estimatedNumberOfLines = content.size() / linesIterator.current_element_size();
             data.reserve(estimatedNumberOfLines);
         }
-
-        // ToDo: headers
 
         while (!linesIterator.done())
         {
@@ -485,8 +522,7 @@ namespace fastcsv
     {
         if (!std::filesystem::exists(filePath) || !std::filesystem::is_regular_file(filePath))
         {
-            throw fastcsv_exception(
-                fmt::format("File does not exist: '{}'  {} {}", filePath, __FILE__, __LINE__));
+            throw fastcsv_exception(fmt::format("File does not exist: '{}'  {} {}", filePath, __FILE__, __LINE__));
         }
 
         if (filePath.extension() != detail::csv_extension)
@@ -507,7 +543,7 @@ namespace fastcsv
         }
 
         std::string content;
-        content.reserve(static_cast<size_t>(std::filesystem::file_size(filePath)));
+        content.resize(static_cast<size_t>(std::filesystem::file_size(filePath)));
         file.read(content.data(), content.size());
 
         if (!file)

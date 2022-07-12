@@ -12,6 +12,10 @@ project(
     HOMEPAGE_URL "https://github.com/JonathanHiggs/fastcsv"
     LANGUAGES CXX)
 
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 option(FASTCSV_BUILD_TESTS "Build unit tests" ON)
 
 find_package(fmt CONFIG REQUIRED)
