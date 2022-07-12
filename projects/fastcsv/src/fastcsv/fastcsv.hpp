@@ -444,7 +444,7 @@ namespace fastcsv
 
 #pragma endregion
 
-#pragma region helpers
+#pragma region api
 
     namespace detail
     {
