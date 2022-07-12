@@ -11,7 +11,7 @@
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
                 "CMAKE_TOOLCHAIN_FILE": {
-                    "value": "$env{VCPKG_DIR}/scripts/buildsystems/vcpkg.cmake",
+                    "value": "~/dev/third-party/vcpkg/scripts/buildsystems/vcpkg.cmake",
                     "type": "FILEPATH"
                 }
             },

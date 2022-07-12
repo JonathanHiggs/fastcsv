@@ -1,8 +1,6 @@
 #pragma once
 
 
-#pragma region preprocessor
-
 // https://blog.kowalczyk.info/article/j/guide-to-predefined-macros-in-c-compilers-gcc-clang-msvc-etc..html
 
 // Detect the host platform
@@ -18,8 +16,11 @@
 // Detect the compiler
 #if (defined(_MSC_VER) && !defined(__clang)) && !defined(FASTCSV_COMPILER_MSVC)
     #define FASTCSV_COMPILER_MSVC
+    #define FASTCSV_COMPILER_MSVC_VERSION = _MSC_VER
 #elif defined(__GNUC__) && !defined(FASTCSV_COMPILER_GCC)
     #define FASTCSV_COMPILER_GCC
+    #define FASTCSV_COMPILER_GCC_MAJOR = __GNUC__
+    #define FASTCSV_COMPILER_GCC_MINOR = __GNUC_MINOR__
 #elif defined(__clang__) && !defined(FASTCSV_COMPILER_CLANG)
     #define FASTCSV_COMPILER_CLANG
 #else
@@ -69,8 +70,6 @@
     #endif
 #endif
 
-#pragma endregion
-
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>
@@ -92,8 +91,6 @@
 
 namespace fastcsv
 {
-
-#pragma region utils
 
     namespace detail
     {
@@ -132,13 +129,19 @@ namespace fastcsv
             /// The size of the current element
             /// </summary>
             /// <returns>Size of the current element</returns>
-            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR size_t current_element_size() const noexcept { return next_ - current_; }
+            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR size_t current_element_size() const noexcept
+            {
+                return next_ - current_;
+            }
 
             /// <summary>
             /// Checks if the current element is empty
             /// </summary>
             /// <returns>true if the current element is empty; false otherwise</returns>
-            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR bool current_element_empty() const noexcept { return current_element_size() == 0ul; }
+            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR bool current_element_empty() const noexcept
+            {
+                return current_element_size() == 0ul;
+            }
 
             /// <summary>
             /// The contents current element
@@ -216,9 +219,17 @@ namespace fastcsv
 
     }  // namespace detail
 
-#pragma endregion
+    class fastcsv_exception final : public std::exception
+    {
+    private:
+        std::string what_;
 
-#pragma region from_csv
+    public:
+        explicit fastcsv_exception(std::string message) noexcept : what_(std::move(message)) { }
+
+        const char * what() const noexcept override { return what_.c_str(); }
+    };
+
 
     template <typename T, typename = void>
     struct from_csv;
@@ -232,7 +243,7 @@ namespace fastcsv
         {
             if constexpr (std::is_same_v<from_csv<TRead>, decltype(*this)>)
             {
-                throw std::exception(fmt::format("Recursive call  {} {}", __FILE__, __LINE__).c_str());
+                throw fastcsv_exception(fmt::format("Recursive call  {} {}", __FILE__, __LINE__));
             }
 
             return from_csv<TRead>{ iterator }();
@@ -243,7 +254,7 @@ namespace fastcsv
         {
             if constexpr (std::is_same_v<from_csv<std::optional<TRead>>, decltype(*this)>)
             {
-                throw std::exception(fmt::format("Recursive call  {} {}", __FILE__, __LINE__).c_str());
+                throw fastcsv_exception(fmt::format("Recursive call  {} {}", __FILE__, __LINE__));
             }
 
             return from_csv<std::optional<TRead>>{ iterator }();
@@ -254,7 +265,7 @@ namespace fastcsv
         {
             if constexpr (std::is_same_v<from_csv<TRead>, decltype(*this)>)
             {
-                throw std::exception(fmt::format("Recursive call  {} {}", __FILE__, __LINE__).c_str());
+                throw fastcsv_exception(fmt::format("Recursive call  {} {}", __FILE__, __LINE__));
             }
 
             try
@@ -279,33 +290,30 @@ namespace fastcsv
             auto [ptr, errorCode] = std::from_chars(element.data(), element.data() + element.size(), value);
             if (errorCode != std::errc())
             {
-                throw std::exception(fmt::format(
-                                         "Failed to parse {} from '{}', errorCode: {}  {} {}",
-                                         typeid(T).name(),
-                                         element,
-                                         errorCode,
-                                         __FILE__,
-                                         __LINE__)
-                                         .c_str());
+                throw fastcsv_exception(fmt::format(
+                                            "Failed to parse {} from '{}', errorCode: {}  {} {}",
+                                            typeid(T).name(),
+                                            element,
+                                            errorCode,
+                                            __FILE__,
+                                            __LINE__)
+                                            .c_str());
             }
             return value;
 #else
-            if constexpr (std::is_same_v<T, int>) { return std::stoi(std::basic_string<TElem>(iterator.consume())); }
-            if constexpr (std::is_same_v<T, long>) { return std::stol(std::basic_string<TElem>(iterator.consume())); }
-            if constexpr (std::is_same_v<T, long long>)
-            {
-                return std::stoll(std::basic_string<TElem>(iterator.consume()));
-            }
+            if constexpr (std::is_same_v<T, int>) { return std::stoi(std::string(iterator.consume())); }
+            if constexpr (std::is_same_v<T, long>) { return std::stol(std::string(iterator.consume())); }
+            if constexpr (std::is_same_v<T, long long>) { return std::stoll(std::string(iterator.consume())); }
             if constexpr (std::is_same_v<T, unsigned> || std::is_same_v<T, unsigned long>)
             {
-                return std::stoul(std::basic_string<TElem>(iterator.consume()));
+                return std::stoul(std::string(iterator.consume()));
             }
             if constexpr (std::is_same_v<T, unsigned long long>)
             {
-                return std::stoull(std::basic_string<TElem>(iterator.consume()));
+                return std::stoull(std::string(iterator.consume()));
             }
-            if constexpr (std::is_same_v<T, float>) { return std::stof(std::basic_string<TElem>(iterator.consume())); }
-            if constexpr (std::is_same_v<T, double>) { return std::stod(std::basic_string<TElem>(iterator.consume())); }
+            if constexpr (std::is_same_v<T, float>) { return std::stof(std::string(iterator.consume())); }
+            if constexpr (std::is_same_v<T, double>) { return std::stod(std::string(iterator.consume())); }
 #endif
         }
     };
@@ -340,8 +348,8 @@ namespace fastcsv
             if (value == "true" || value == "TRUE" || value == "True") { return true; }
             if (value == "false" || value == "FALSE" || value == "False") { return false; }
 
-            throw std::exception(
-                fmt::format("Unable to parse bool from '{}'  {} {}", value, __FILE__, __LINE__).c_str());
+            throw fastcsv_exception(
+                fmt::format("Unable to parse bool from '{}'  {} {}", value, __FILE__, __LINE__));
         }
     };
 
@@ -360,9 +368,6 @@ namespace fastcsv
         }
     };
 
-#pragma endregion
-
-#pragma region to_csv
 
     template <typename T, typename = void>
     struct to_csv;
@@ -377,7 +382,7 @@ namespace fastcsv
         {
             if constexpr (std::is_same_v<to_csv<TWrite>, decltype(*this)>)
             {
-                throw std::exception(fmt::format("Recursive call  {} {}", __FILE__, __LINE__).c_str());
+                throw fastcsv_exception(fmt::format("Recursive call  {} {}", __FILE__, __LINE__));
             }
 
             if (!first) { stream << detail::default_column_delimiter; }
@@ -406,7 +411,7 @@ namespace fastcsv
             if (hasQuote)
             {
                 // ToDo: escape quotes and write
-                throw std::exception(fmt::format("Not implemented  {} {}", __FILE__, __LINE__).c_str());
+                throw fastcsv_exception(fmt::format("Not implemented  {} {}", __FILE__, __LINE__));
             }
             else if (hasComma)
             {
@@ -422,29 +427,20 @@ namespace fastcsv
     template <>
     struct to_csv<bool> final : csv_writer
     {
-        inline void operator()(bool value)
-        {
-            fmt::print(stream, value ? "true" : "false");
-        }
+        inline void operator()(bool value) { fmt::print(stream, value ? "true" : "false"); }
     };
 
     template <typename T>
     struct to_csv<std::optional<T>> final : csv_writer
     {
-        inline void operator()(const std::optional<T>& value)
+        inline void operator()(const std::optional<T> & value)
         {
-            if (!value)
-            {
-                return;
-            }
+            if (!value) { return; }
 
             to_csv<T>{ stream, first }(*value);
         }
     };
 
-#pragma endregion
-
-#pragma region api
 
     namespace detail
     {
@@ -489,24 +485,25 @@ namespace fastcsv
     {
         if (!std::filesystem::exists(filePath) || !std::filesystem::is_regular_file(filePath))
         {
-            throw std::exception(fmt::format("File does not exist: '{}'  {} {}", filePath, __FILE__, __LINE__).c_str());
+            throw fastcsv_exception(
+                fmt::format("File does not exist: '{}'  {} {}", filePath, __FILE__, __LINE__));
         }
 
         if (filePath.extension() != detail::csv_extension)
         {
-            throw std::exception(fmt::format(
-                                     "File does not have the required '.{}' extension: {}  {} {}",
-                                     detail::csv_extension,
-                                     __FILE__,
-                                     __LINE__)
-                                     .c_str());
+            throw fastcsv_exception(fmt::format(
+                                        "File does not have the required '.{}' extension: {}  {} {}",
+                                        detail::csv_extension,
+                                        __FILE__,
+                                        __LINE__)
+                                        .c_str());
         }
 
         auto file = std::ifstream(filePath, std::ios::in | std::ios::binary);
 
         if (!file)
         {
-            throw std::exception(fmt::format("Cannot open file: {}  {} {}", filePath, __FILE__, __LINE__).c_str());
+            throw fastcsv_exception(fmt::format("Cannot open file: {}  {} {}", filePath, __FILE__, __LINE__));
         }
 
         std::string content;
@@ -515,8 +512,8 @@ namespace fastcsv
 
         if (!file)
         {
-            throw std::exception(
-                fmt::format("Could not read full contents of file: {}  {} {}", filePath, __FILE__, __LINE__).c_str());
+            throw fastcsv_exception(
+                fmt::format("Could not read full contents of file: {}  {} {}", filePath, __FILE__, __LINE__));
         }
 
         return read_csv<T>(content);
@@ -562,12 +559,12 @@ namespace fastcsv
     {
         if (filePath.extension() != detail::csv_extension)
         {
-            throw std::exception(fmt::format(
-                                     "File does not have the required '.{}' extension: {}  {} {}",
-                                     detail::csv_extension,
-                                     __FILE__,
-                                     __LINE__)
-                                     .c_str());
+            throw fastcsv_exception(fmt::format(
+                                        "File does not have the required '.{}' extension: {}  {} {}",
+                                        detail::csv_extension,
+                                        __FILE__,
+                                        __LINE__)
+                                        .c_str());
         }
 
         auto file = std::ofstream(filePath, std::ios::out | std::ios::binary);
@@ -586,12 +583,12 @@ namespace fastcsv
     {
         if (filePath.extension() != detail::csv_extension)
         {
-            throw std::exception(fmt::format(
-                                     "File does not have the required '.{}' extension: {}  {} {}",
-                                     detail::csv_extension,
-                                     __FILE__,
-                                     __LINE__)
-                                     .c_str());
+            throw fastcsv_exception(fmt::format(
+                                        "File does not have the required '.{}' extension: {}  {} {}",
+                                        detail::csv_extension,
+                                        __FILE__,
+                                        __LINE__)
+                                        .c_str());
         }
 
         auto file = std::ofstream(filePath, std::ios::out | std::ios::binary);
@@ -607,7 +604,5 @@ namespace fastcsv
             file << detail::default_line_delimiter;
         }
     }
-
-#pragma endregion
 
 }  // namespace fastcsv
