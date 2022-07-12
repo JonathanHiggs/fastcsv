@@ -1,5 +1,8 @@
 #pragma once
 
+
+#pragma region preprocessor
+
 // https://blog.kowalczyk.info/article/j/guide-to-predefined-macros-in-c-compilers-gcc-clang-msvc-etc..html
 
 // Detect the host platform
@@ -66,6 +69,8 @@
     #endif
 #endif
 
+#pragma endregion
+
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>
@@ -87,6 +92,9 @@
 
 namespace fastcsv
 {
+
+#pragma region utils
+
     namespace detail
     {
 
@@ -124,7 +132,13 @@ namespace fastcsv
             /// The size of the current element
             /// </summary>
             /// <returns>Size of the current element</returns>
-            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR size_t element_size() const noexcept { return next_ - current_; }
+            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR size_t current_element_size() const noexcept { return next_ - current_; }
+
+            /// <summary>
+            /// Checks if the current element is empty
+            /// </summary>
+            /// <returns>true if the current element is empty; false otherwise</returns>
+            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR bool current_element_empty() const noexcept { return current_element_size() == 0ul; }
 
             /// <summary>
             /// The contents current element
@@ -136,21 +150,16 @@ namespace fastcsv
             }
 
             /// <summary>
-            /// Consumes an element from the content, returns the element value and advances
+            /// Advances the iterator to the next element
             /// </summary>
-            /// <returns>Returns the contents of the element before advancing</returns>
-            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR std::basic_string_view<TElem, TTraits> consume()
+            void FASTCSV_CONSTEXPR advance()
             {
-                auto result = current_element();
-
-                if (current_ == next_) { return result; }
-
                 current_ = next_ + 1ul;
 
                 if (current_ >= content_.size())
                 {
                     current_ = next_ = content_.size();
-                    return result;
+                    return;
                 }
 
                 next_ = next(delimiter_, current_);
@@ -165,11 +174,26 @@ namespace fastcsv
                     while (content_[nextQuote - 1ul] == '\\');
                     next_ = next(delimiter_, nextQuote);
                 }
+            }
 
+            /// <summary>
+            /// Consumes the current element by advancing
+            /// </summary>
+            /// <returns>Returns the contents of the element before advancing</returns>
+            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR std::basic_string_view<TElem, TTraits> consume()
+            {
+                auto result = current_element();
+                advance();
                 return result;
             }
 
         private:
+            /// <summary>
+            /// Gets the position of the next instance of the supplied delimiter after the given position
+            /// </summary>
+            /// <param name="delimiter">Delimiter to search for</param>
+            /// <param name="position">Position to search from</param>
+            /// <returns>Position of the next instance of the delimiter or end if not found</returns>
             FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR size_t next(TElem delimiter, size_t position)
             {
                 return std::min(content_.size(), content_.find(delimiter, position));
@@ -192,6 +216,10 @@ namespace fastcsv
 
     }  // namespace detail
 
+#pragma endregion
+
+#pragma region from_csv
+
     template <typename T, typename = void>
     struct from_csv;
 
@@ -208,6 +236,17 @@ namespace fastcsv
             }
 
             return from_csv<TRead>{ iterator }();
+        }
+
+        template <typename TRead>
+        FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR inline std::optional<TRead> read_opt() const
+        {
+            if constexpr (std::is_same_v<from_csv<std::optional<TRead>>, decltype(*this)>)
+            {
+                throw std::exception(fmt::format("Recursive call  {} {}", __FILE__, __LINE__).c_str());
+            }
+
+            return from_csv<std::optional<TRead>>{ iterator }();
         }
 
         template <typename TRead>
@@ -291,6 +330,40 @@ namespace fastcsv
         }
     };
 
+    template <>
+    struct from_csv<bool> final : csv_reader
+    {
+        FASTCSV_NO_DISCARD inline bool operator()() const
+        {
+            auto value = iterator.consume();
+
+            if (value == "true" || value == "TRUE" || value == "True") { return true; }
+            if (value == "false" || value == "FALSE" || value == "False") { return false; }
+
+            throw std::exception(
+                fmt::format("Unable to parse bool from '{}'  {} {}", value, __FILE__, __LINE__).c_str());
+        }
+    };
+
+    template <typename T>
+    struct from_csv<std::optional<T>> final : csv_reader
+    {
+        FASTCSV_NO_DISCARD inline std::optional<T> operator()() const
+        {
+            if (iterator.current_element_empty())
+            {
+                iterator.advance();
+                return std::nullopt;
+            }
+
+            return from_csv<T>{ iterator }();
+        }
+    };
+
+#pragma endregion
+
+#pragma region to_csv
+
     template <typename T, typename = void>
     struct to_csv;
 
@@ -346,6 +419,33 @@ namespace fastcsv
         }
     };
 
+    template <>
+    struct to_csv<bool> final : csv_writer
+    {
+        inline void operator()(bool value)
+        {
+            fmt::print(stream, value ? "true" : "false");
+        }
+    };
+
+    template <typename T>
+    struct to_csv<std::optional<T>> final : csv_writer
+    {
+        inline void operator()(const std::optional<T>& value)
+        {
+            if (!value)
+            {
+                return;
+            }
+
+            to_csv<T>{ stream, first }(*value);
+        }
+    };
+
+#pragma endregion
+
+#pragma region helpers
+
     namespace detail
     {
 
@@ -366,10 +466,10 @@ namespace fastcsv
         auto data = std::vector<T>();
         auto linesIterator = detail::csv_iterator(content, detail::default_line_delimiter);
 
-        if (linesIterator.element_size() != 0ul)
+        if (linesIterator.current_element_size() != 0ul)
         {
             // Simple heuristic to estimate the total number of lines to avoid lots of vector resizing
-            auto estimatedNumberOfLines = content.size() / linesIterator.element_size();
+            auto estimatedNumberOfLines = content.size() / linesIterator.current_element_size();
             data.reserve(estimatedNumberOfLines);
         }
 
@@ -507,5 +607,7 @@ namespace fastcsv
             file << detail::default_line_delimiter;
         }
     }
+
+#pragma endregion
 
 }  // namespace fastcsv

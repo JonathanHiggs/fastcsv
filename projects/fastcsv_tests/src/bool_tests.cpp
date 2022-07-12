@@ -1,0 +1,76 @@
+#include <fastcsv/fastcsv.hpp>
+
+#include <gtest/gtest.h>
+
+using namespace std::string_literals;
+
+
+namespace fastcsv
+{
+
+    TEST(bool_tests, parse_true)
+    {
+        // Arrange
+        auto str = "true\nTRUE\nTrue\n"s;
+
+        // Act
+        auto result = parse_csv<bool>(str);
+
+        // Assert
+        EXPECT_EQ(result.size(), 3ul);
+
+        for (auto value : result)
+        {
+            EXPECT_TRUE(value);
+        }
+    }
+
+    TEST(bool_tests, parse_false)
+    {
+        // Arrange
+        auto str = "false\nFALSE\nFalse\n"s;
+
+        // Act
+        auto result = parse_csv<bool>(str);
+
+        // Assert
+        EXPECT_EQ(result.size(), 3ul);
+
+        for (auto value : result)
+        {
+            EXPECT_FALSE(value);
+        }
+    }
+
+    TEST(bool_tests, write_string)
+    {
+        // Arrange
+        auto data = std::vector<bool>{ true, false };
+        auto expected = "true\nfalse\n"s;
+
+        // Act
+        auto result = to_csv_string(data);
+
+        // Assert
+        EXPECT_EQ(result, expected);
+    }
+
+    TEST(bool_tests, round_trip)
+    {
+        // Arrange
+        auto expected = std::vector<bool>{ true, false };
+
+        // Act
+        auto str = to_csv_string(expected);
+        auto result = parse_csv<bool>(str);
+
+        // Assert
+        EXPECT_EQ(result.size(), expected.size());
+
+        for (auto i = 0ul; i < result.size(); ++i)
+        {
+            EXPECT_EQ(result[i], expected[i]);
+        }
+    }
+
+}

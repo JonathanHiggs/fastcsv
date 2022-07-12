@@ -7,29 +7,29 @@ using namespace std::string_literals;
 
 namespace fastcsv
 {
-    struct foo
+    struct simple_struct
     {
         std::string name;
         int number;
 
-        inline FASTCSV_CONSTEXPR bool operator==(const foo & other) const noexcept
+        inline FASTCSV_CONSTEXPR bool operator==(const simple_struct & other) const noexcept
         {
             return std::tie(name, number) == std::tie(other.name, other.number);
         }
 
-        inline FASTCSV_CONSTEXPR bool operator!=(const foo & other) const noexcept { return !(*this == other); }
+        inline FASTCSV_CONSTEXPR bool operator!=(const simple_struct & other) const noexcept { return !(*this == other); }
     };
 
     template <>
-    struct from_csv<foo> : csv_reader
+    struct from_csv<simple_struct> final : csv_reader
     {
-        foo operator()() const { return foo{ read<std::string>(), read<int>() }; }
+        simple_struct operator()() const { return simple_struct{ read<std::string>(), read<int>() }; }
     };
 
     template <>
-    struct to_csv<foo> : csv_writer
+    struct to_csv<simple_struct> final : csv_writer
     {
-        void operator()(const foo & value)
+        void operator()(const simple_struct & value)
         {
             write(value.name);
             write(value.number);
@@ -41,23 +41,24 @@ namespace fastcsv
     {
         // Arrange
         auto str = "One,1\nTwo,2\nThree,3\n"s;
-        auto expected = std::vector<foo>{ foo{ "One", 1 }, foo{ "Two", 2 }, foo{ "Three", 3 } };
+        auto expected = std::vector<simple_struct>{ simple_struct{ "One", 1 }, simple_struct{ "Two", 2 }, simple_struct{ "Three", 3 } };
 
         // Act
-        auto result = parse_csv<foo>(str);
+        auto result = parse_csv<simple_struct>(str);
 
         // Assert
         EXPECT_EQ(result.size(), expected.size());
 
-        EXPECT_EQ(result[0], expected[0]);
-        EXPECT_EQ(result[1], expected[1]);
-        EXPECT_EQ(result[2], expected[2]);
+        for (auto i = 0ul; i < result.size(); ++i)
+        {
+            EXPECT_EQ(result[i], expected[i]);
+        }
     }
 
     TEST(simple_tests, write_string)
     {
         // Arrange
-        auto data = std::vector<foo>{ foo{ "One", 1 }, foo{ "Two", 2 }, foo{ "Three", 3 } };
+        auto data = std::vector<simple_struct>{ simple_struct{ "One", 1 }, simple_struct{ "Two", 2 }, simple_struct{ "Three", 3 } };
         auto expected = "One,1\nTwo,2\nThree,3\n"s;
 
         // Act
@@ -70,18 +71,19 @@ namespace fastcsv
     TEST(simple_tests, round_trip)
     {
         // Arrange
-        auto expected = std::vector<foo>{ foo{ "One", 1 }, foo{ "Two", 2 }, foo{ "Three", 3 } };
+        auto expected = std::vector<simple_struct>{ simple_struct{ "One", 1 }, simple_struct{ "Two", 2 }, simple_struct{ "Three", 3 } };
 
         // Act
         auto csvString = to_csv_string(expected);
-        auto result = parse_csv<foo>(csvString);
+        auto result = parse_csv<simple_struct>(csvString);
 
         // Assert
         EXPECT_EQ(result.size(), expected.size());
 
-        EXPECT_EQ(result[0], expected[0]);
-        EXPECT_EQ(result[1], expected[1]);
-        EXPECT_EQ(result[2], expected[2]);
+        for (auto i = 0ul; i < result.size(); ++i)
+        {
+            EXPECT_EQ(result[i], expected[i]);
+        }
     }
 
 }  // namespace fastcsv
