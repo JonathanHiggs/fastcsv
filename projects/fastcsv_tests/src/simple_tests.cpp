@@ -7,6 +7,7 @@ using namespace std::string_literals;
 
 namespace fastcsv
 {
+
     struct simple_struct
     {
         std::string name;
@@ -37,14 +38,14 @@ namespace fastcsv
     };
 
 
-    TEST(simple_tests, parse)
+    TEST(simple_tests, read)
     {
         // Arrange
         auto str = "One,1\nTwo,2\nThree,3\n"s;
         auto expected = std::vector<simple_struct>{ simple_struct{ "One", 1 }, simple_struct{ "Two", 2 }, simple_struct{ "Three", 3 } };
 
         // Act
-        auto result = parse_csv<simple_struct>(str);
+        auto result = read_csv<simple_struct>(str);
 
         // Assert
         EXPECT_EQ(result.size(), expected.size());
@@ -62,7 +63,7 @@ namespace fastcsv
         auto expected = "One,1\nTwo,2\nThree,3\n"s;
 
         // Act
-        auto result = to_csv_string(data);
+        auto result = write_csv(data);
 
         // Assert
         EXPECT_EQ(result, expected);
@@ -74,8 +75,8 @@ namespace fastcsv
         auto expected = std::vector<simple_struct>{ simple_struct{ "One", 1 }, simple_struct{ "Two", 2 }, simple_struct{ "Three", 3 } };
 
         // Act
-        auto csvString = to_csv_string(expected);
-        auto result = parse_csv<simple_struct>(csvString);
+        auto csvString = write_csv(expected);
+        auto result = read_csv<simple_struct>(csvString);
 
         // Assert
         EXPECT_EQ(result.size(), expected.size());

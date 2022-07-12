@@ -1,6 +1,6 @@
 # fastcsv
 
-A fast c++20 csv library
+A simple and fast c++20 csv library
 
 
 ## Example
@@ -44,12 +44,12 @@ namepace fastcsv
 Use the library to convert data to strings and files
 
 ```cpp
-void myMethod()
+void example()
 {
-    std::vector<Foo> data = fastcsv::load_csv("some/path.csv");
+    auto data = fastcsv::load_csv<Foo>("some/path.csv");
     fastcsv::save_csv("some/path.csv", data);
 
-    auto csvString = fastcsv::to_csv_string(data);
-    auto parsedData = fastcsv::parse_csv(csvString);
+    auto csvString = fastcsv::write_csv(data);
+    auto parsedData = fastcsv::read_csv<Foo>(csvString);
 }
 ```

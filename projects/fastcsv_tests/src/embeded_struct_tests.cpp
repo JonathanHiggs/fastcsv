@@ -7,6 +7,7 @@ using namespace std::string_literals;
 
 namespace fastcsv
 {
+
     struct embeded_struct
     {
         std::string name;
@@ -71,7 +72,8 @@ namespace fastcsv
         }
     };
 
-    TEST(embeded_struct_tests, parse)
+
+    TEST(embeded_struct_tests, read)
     {
         // Arrange
         auto str = "a,one,1\nb,two,2\n"s;
@@ -79,7 +81,7 @@ namespace fastcsv
                                                        composite_struct{ "b", embeded_struct{ "two", 2 } } };
 
         // Act
-        auto result = parse_csv<composite_struct>(str);
+        auto result = read_csv<composite_struct>(str);
 
         // Assert
         EXPECT_EQ(result.size(), expected.size());
@@ -98,7 +100,7 @@ namespace fastcsv
         auto expected = "a,one,1\nb,two,2\n"s;
 
         // Act
-        auto result = to_csv_string(data);
+        auto result = write_csv(data);
 
         // Assert
         EXPECT_EQ(result, expected);
@@ -111,8 +113,8 @@ namespace fastcsv
                                                        composite_struct{ "b", embeded_struct{ "two", 2 } } };
 
         // Act
-        auto csvString = to_csv_string(expected);
-        auto result = parse_csv<composite_struct>(csvString);
+        auto csvString = write_csv(expected);
+        auto result = read_csv<composite_struct>(csvString);
 
         // Assert
         EXPECT_EQ(result.size(), expected.size());

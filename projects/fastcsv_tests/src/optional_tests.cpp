@@ -42,7 +42,8 @@ namespace fastcsv
         }
     };
 
-    TEST(optional_tests, parse)
+
+    TEST(optional_tests, read)
     {
         // Arrange
         auto str = "all-values,1,str\nno-values,,\nint-values,1,\nstr-values,,str\n"s;
@@ -54,7 +55,7 @@ namespace fastcsv
         };
 
         // Act
-        auto result = parse_csv<optional_struct>(str);
+        auto result = read_csv<optional_struct>(str);
 
         // Assert
         EXPECT_EQ(result.size(), expected.size());
@@ -77,7 +78,7 @@ namespace fastcsv
         auto expected = "all-values,1,str\nno-values,,\nint-values,1,\nstr-values,,str\n"s;
 
         // Act
-        auto result = to_csv_string(data);
+        auto result = write_csv(data);
 
         // Assert
         EXPECT_EQ(result, expected);
@@ -94,8 +95,8 @@ namespace fastcsv
         };
 
         // Act
-        auto csvString = to_csv_string(expected);
-        auto result = parse_csv<optional_struct>(csvString);
+        auto csvString = write_csv(expected);
+        auto result = read_csv<optional_struct>(csvString);
 
         // Assert
         EXPECT_EQ(result.size(), expected.size());

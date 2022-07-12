@@ -459,7 +459,7 @@ namespace fastcsv
     }  // namespace detail
 
     template <typename T>
-    FASTCSV_NO_DISCARD std::vector<T> parse_csv(const std::string & content)
+    FASTCSV_NO_DISCARD std::vector<T> read_csv(const std::string & content)
     {
         if (content.empty()) { return std::vector<T>(); }
 
@@ -519,11 +519,11 @@ namespace fastcsv
                 fmt::format("Could not read full contents of file: {}  {} {}", filePath, __FILE__, __LINE__).c_str());
         }
 
-        return parse_csv<T>(content);
+        return read_csv<T>(content);
     }
 
     template <typename T>
-    FASTCSV_NO_DISCARD std::string to_csv_string(const std::vector<T> & data)
+    FASTCSV_NO_DISCARD std::string write_csv(const std::vector<T> & data)
     {
         std::stringstream stream;
         auto writer = to_csv<T>{ stream, true };
@@ -539,7 +539,7 @@ namespace fastcsv
     }
 
     template <typename... Ts>
-    FASTCSV_NO_DISCARD std::string to_csv_string(const std::vector<Ts> &... vectors)
+    FASTCSV_NO_DISCARD std::string write_csv(const std::vector<Ts> &... vectors)
     {
         std::stringstream stream;
 

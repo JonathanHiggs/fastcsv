@@ -8,13 +8,13 @@ using namespace std::string_literals;
 namespace fastcsv
 {
 
-    TEST(bool_tests, parse_true)
+    TEST(bool_tests, read_true)
     {
         // Arrange
         auto str = "true\nTRUE\nTrue\n"s;
 
         // Act
-        auto result = parse_csv<bool>(str);
+        auto result = read_csv<bool>(str);
 
         // Assert
         EXPECT_EQ(result.size(), 3ul);
@@ -25,13 +25,13 @@ namespace fastcsv
         }
     }
 
-    TEST(bool_tests, parse_false)
+    TEST(bool_tests, read_false)
     {
         // Arrange
         auto str = "false\nFALSE\nFalse\n"s;
 
         // Act
-        auto result = parse_csv<bool>(str);
+        auto result = read_csv<bool>(str);
 
         // Assert
         EXPECT_EQ(result.size(), 3ul);
@@ -49,7 +49,7 @@ namespace fastcsv
         auto expected = "true\nfalse\n"s;
 
         // Act
-        auto result = to_csv_string(data);
+        auto result = write_csv(data);
 
         // Assert
         EXPECT_EQ(result, expected);
@@ -61,8 +61,8 @@ namespace fastcsv
         auto expected = std::vector<bool>{ true, false };
 
         // Act
-        auto str = to_csv_string(expected);
-        auto result = parse_csv<bool>(str);
+        auto str = write_csv(expected);
+        auto result = read_csv<bool>(str);
 
         // Assert
         EXPECT_EQ(result.size(), expected.size());
