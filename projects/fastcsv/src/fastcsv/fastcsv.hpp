@@ -84,6 +84,8 @@
 #include <exception>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
+#include <istream>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -101,6 +103,105 @@ namespace fastcsv
         inline static constexpr std::string_view csv_extension = ".csv";
         inline static constexpr char default_column_delimiter = ',';
         inline static constexpr char default_line_delimiter = '\n';
+
+        template <typename TElem, typename TTraits>
+        class basic_string_viewbuf final : public std::basic_streambuf<TElem, TTraits>
+        {
+        private:
+            using base_type = std::basic_streambuf<TElem, TTraits>;
+            using self_type = basic_string_viewbuf<TElem, TTraits>;
+
+        public:
+            using char_type = typename base_type::char_type;
+            using traits_type = typename base_type::traits_type;
+            using int_type = typename traits_type::int_type;
+            using pos_type = typename traits_type::pos_type;
+            using off_type = typename traits_type::off_type;
+
+            using source_type = typename std::basic_string_view<char_type, traits_type>;
+
+        private:
+            source_type source_;
+
+        public:
+            basic_string_viewbuf(source_type source) noexcept : base_type(), source_(source)
+            {
+                char_type * buffer = const_cast<char_type *>(source_.data());
+                this->setg(buffer, buffer, buffer + source_.length());
+            }
+
+            //~basic_string_viewbuf() noexcept override = default;
+
+            std::streamsize xsgetn(char_type * s, std::streamsize n) override
+            {
+                if (n == 0) { return 0; }
+
+                if ((this->gptr() + n) >= this->egptr())
+                {
+                    n = this->egptr() - this->gptr();
+                    if (n == 0 && !traits_type::not_eof(this->underflow())) { return -1; }
+                }
+
+                std::memmove(s, this->gptr(), n);
+                this->gbump(static_cast<int>(n));
+                return n;
+            }
+
+            int_type pbackfail(int_type c) override
+            {
+                auto * pos = this->gptr() - 1;
+                *pos = traits_type::to_char_type(c);
+                this->pbump(-1);
+                return 1;
+            }
+
+            int_type underflow() override { return traits_type::eof(); }
+
+            std::streamsize showmanyc() override { return static_cast<std::streamsize>(this->egptr() - this->gptr()); }
+        };
+
+        template <typename TElem, typename TTraits>
+        class basic_string_view_stream final : public std::basic_istream<TElem, TTraits>
+        {
+        private:
+            using base_type = std::basic_istream<TElem, TTraits>;
+            using streambuf_type = basic_string_viewbuf<TElem, TTraits>;
+
+        public:
+            using char_type = TElem;
+            using traits_type = TTraits;
+            using int_type = base_type::int_type;
+            using pos_type = base_type::pos_type;
+            using off_type = base_type::off_type;
+            using source_type = streambuf_type::source_type;
+
+        private:
+            streambuf_type buffer;
+
+        public:
+            basic_string_view_stream(std::basic_string_view<TElem, TTraits> sv) : base_type(nullptr), buffer(sv)
+            {
+                this->init(&buffer);
+            }
+
+            basic_string_view_stream(const basic_string_view_stream &) = delete;
+            basic_string_view_stream & operator=(const basic_string_view_stream &) = delete;
+
+            basic_string_view_stream(basic_string_view_stream && other) noexcept
+              : base_type(std::forward<basic_string_view_stream>(other)), buffer(other.buffer)
+            { }
+
+            basic_string_view_stream & operator=(basic_string_view_stream && rhs) noexcept
+            {
+                if (std::addressof(rhs) == this) { return *this; }
+
+                basic_string_view_stream(std::move(rhs)).swap(*this);
+                return *this;
+            }
+        };
+
+        using string_view_stream = basic_string_view_stream<char, std::char_traits<char>>;
+        using wstring_view_stream = basic_string_view_stream<wchar_t, std::char_traits<wchar_t>>;
 
         /// <summary>
         /// Iterator for consuming string data with split by a delimiter
@@ -253,7 +354,7 @@ namespace fastcsv
         }
 
         template <typename TRead, typename... TArgs>
-        FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR inline std::optional<TRead> read_opt(TArgs && ... args) const
+        FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR inline std::optional<TRead> read_opt(TArgs &&... args) const
         {
             if constexpr (std::is_same_v<from_csv<std::optional<TRead>>, decltype(*this)>)
             {
@@ -374,15 +475,15 @@ namespace fastcsv
     template <>
     struct from_csv<std::chrono::year_month_day> final : csv_reader
     {
-        FASTCSV_NO_DISCARD inline std::chrono::year_month_day operator()() const
+        FASTCSV_NO_DISCARD inline std::chrono::year_month_day operator()(std::string_view fmt = "%Y-%m-%d") const
         {
             auto element = iterator.consume();
+            auto in = detail::string_view_stream(element);
 
-            if (element.size() != 10ul) { throw fastcsv_exception(""); }
+            std::chrono::year_month_day value;
+            auto result = std::chrono::from_stream(in, fmt.data(), value);
 
-            return std::chrono::year_month_day{ std::chrono::year(from_csv<int>::parse(element.substr(0ul, 4ul))),
-                                                std::chrono::month(from_csv<int>::parse(element.substr(5ul, 2ul))),
-                                                std::chrono::day(from_csv<int>::parse(element.substr(8ul, 2ul))) };
+            return value;
         }
     };
 #endif
@@ -472,7 +573,12 @@ namespace fastcsv
     {
         inline void operator()(std::chrono::year_month_day value)
         {
-            fmt::print(stream, "{}-{}-{}", value.year().operator int(), value.month().operator unsigned int(), value.day().operator unsigned int());
+            fmt::print(
+                stream,
+                "{}-{}-{}",
+                value.year().operator int(),
+                value.month().operator unsigned int(),
+                value.day().operator unsigned int());
         }
     };
 #endif
