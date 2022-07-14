@@ -81,7 +81,7 @@ namespace fastcsv
                                                        composite_struct{ "b", embeded_struct{ "two", 2 } } };
 
         // Act
-        auto result = read_csv<composite_struct>(str);
+        auto result = read_csv<composite_struct>(str, no_header);
 
         // Assert
         EXPECT_EQ(result.size(), expected.size());
@@ -114,7 +114,7 @@ namespace fastcsv
 
         // Act
         auto csvString = write_csv(expected);
-        auto result = read_csv<composite_struct>(csvString);
+        auto result = read_csv<composite_struct>(csvString, no_header);
 
         // Assert
         EXPECT_EQ(result.size(), expected.size());

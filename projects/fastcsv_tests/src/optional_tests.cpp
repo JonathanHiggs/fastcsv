@@ -55,7 +55,7 @@ namespace fastcsv
         };
 
         // Act
-        auto result = read_csv<optional_struct>(str);
+        auto result = read_csv<optional_struct>(str, no_header);
 
         // Assert
         EXPECT_EQ(result.size(), expected.size());
@@ -96,7 +96,7 @@ namespace fastcsv
 
         // Act
         auto csvString = write_csv(expected);
-        auto result = read_csv<optional_struct>(csvString);
+        auto result = read_csv<optional_struct>(csvString, no_header);
 
         // Assert
         EXPECT_EQ(result.size(), expected.size());

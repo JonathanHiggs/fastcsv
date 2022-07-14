@@ -11,13 +11,13 @@ namespace fastcsv
     TEST(bool_tests, read_true)
     {
         // Arrange
-        auto str = "true\nTRUE\nTrue\n"s;
+        auto str = "true\nTRUE\nTrue\nt\n"s;
 
         // Act
-        auto result = read_csv<bool>(str);
+        auto result = read_csv<bool>(str, no_header);
 
         // Assert
-        EXPECT_EQ(result.size(), 3ul);
+        EXPECT_EQ(result.size(), 4ul);
 
         for (auto value : result)
         {
@@ -28,13 +28,13 @@ namespace fastcsv
     TEST(bool_tests, read_false)
     {
         // Arrange
-        auto str = "false\nFALSE\nFalse\n"s;
+        auto str = "false\nFALSE\nFalse\nf\n"s;
 
         // Act
-        auto result = read_csv<bool>(str);
+        auto result = read_csv<bool>(str, no_header);
 
         // Assert
-        EXPECT_EQ(result.size(), 3ul);
+        EXPECT_EQ(result.size(), 4ul);
 
         for (auto value : result)
         {
@@ -62,7 +62,7 @@ namespace fastcsv
 
         // Act
         auto str = write_csv(expected);
-        auto result = read_csv<bool>(str);
+        auto result = read_csv<bool>(str, no_header);
 
         // Assert
         EXPECT_EQ(result.size(), expected.size());
