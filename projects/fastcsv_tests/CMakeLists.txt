@@ -25,6 +25,7 @@ if (MSVC)
     )
 else()
     target_compile_options(fastcsv_tests PRIVATE
+        "-std=c++2a"
         "-Wall"
         "-Wextra"
         "-pedantic"

@@ -4,9 +4,9 @@
 // https://blog.kowalczyk.info/article/j/guide-to-predefined-macros-in-c-compilers-gcc-clang-msvc-etc..html
 
 // Detect the host platform
-#if defined(__linux__) && !defined(FASTCSV_PLATFORM_LINUX)
+#if defined(__linux__)
     #define FASTCSV_PLATFORM_LINUX
-#elif (defined(_WIN32) || defined(_WIN64)) && !defined(FASTCSV_PLATFORM_WIN)
+#elif (defined(_WIN32) || defined(_WIN64))
     #define FASTCSV_PLATFORM_WIN
 #else
     #error "Platform not supported"
@@ -14,14 +14,14 @@
 
 
 // Detect the compiler
-#if (defined(_MSC_VER) && !defined(__clang)) && !defined(FASTCSV_COMPILER_MSVC)
+#if (defined(_MSC_VER) && !defined(__clang))
     #define FASTCSV_COMPILER_MSVC
     #define FASTCSV_COMPILER_MSVC_VERSION = _MSC_VER
-#elif defined(__GNUC__) && !defined(FASTCSV_COMPILER_GCC)
+#elif defined(__GNUC__)
     #define FASTCSV_COMPILER_GCC
     #define FASTCSV_COMPILER_GCC_MAJOR = __GNUC__
     #define FASTCSV_COMPILER_GCC_MINOR = __GNUC_MINOR__
-#elif defined(__clang__) && !defined(FASTCSV_COMPILER_CLANG)
+#elif defined(__clang__)
     #define FASTCSV_COMPILER_CLANG
 #else
     #error "Compiler not supported"
@@ -29,23 +29,23 @@
 
 
 // Detect the standard version
-#if !defined(FASTCSV_HAS_CXX17) && !defined(FASTCSV_HAS_CXX20)
+#if !defined(FASTCSV_HAS_CXX17)
     #if defined(_MSVC_LANG)
-        #define FASTCSV_STL_LANG _MSVC_LANG
+        #define FASTCSV_STD_LANG _MSVC_LANG
     #elif defined(__cplusplus)
-        #define FASTCSV_STL_LANG __cplusplus
+        #define FASTCSV_STD_LANG __cplusplus
     #else
-        #define FASTCSV_STL_LANG 0L
+        #define FASTCSV_STD_LANG 0L
     #endif  // ^^^ no C++ support ^^^
 
-    #if FASTCSV_STL_LANG > 201703L
+    #if FASTCSV_STD_LANG > 201703L
         #define FASTCSV_HAS_CXX20
     #endif
-    #if FASTCSV_STL_LANG > 201402L
+    #if FASTCSV_STD_LANG > 201402L
         #define FASTCSV_HAS_CXX17
     #endif
 
-    #undef FASTCSV_STL_LANG
+    #undef FASTCSV_STD_LANG
 #endif
 
 
@@ -66,7 +66,7 @@
     #endif
 #endif
 
-#if defined(FASTCSV_HAS_CXX17)
+#if defined(FASTCSV_HAS_CXX17) && (!defined(FASTCSV_COMPILER_GCC) || FASTCSV_COMPILER_GCC_MAJOR > 9)
     #define FASTCSV_HAS_FROM_CHAR
 #endif
 
