@@ -18,7 +18,7 @@ namespace fastcsv
         auto expected3 = std::vector{ "ab"s, "cd"s };
 
         // Act
-        auto [result1, result2, result3] = read_csv<int, std::string, std::string>(str, no_header);
+        auto [result1, result2, result3] = read_csv_v<int, std::string, std::string>(str, no_header);
 
         // Assert
         EXPECT_EQ(result1.size(), expected1.size());
@@ -42,7 +42,7 @@ namespace fastcsv
         auto expected3 = std::vector{ "ab"s, "cd"s };
 
         // Act
-        auto [result1, result2, result3] = read_csv<int, std::string, std::string>(str);
+        auto [result1, result2, result3] = read_csv_v<int, std::string, std::string>(str);
 
         // Assert
         EXPECT_EQ(result1.size(), expected1.size());
@@ -66,7 +66,7 @@ namespace fastcsv
         auto expected = "1,two,ab\n3,four,cd\n"s;
 
         // Act
-        auto result = write_csv(data1, data2, data3);
+        auto result = write_csv_v(data1, data2, data3);
 
         // Assert
         EXPECT_EQ(result, expected);
@@ -82,7 +82,7 @@ namespace fastcsv
         auto expected = "col1,col2,col3\n1,two,ab\n3,four,cd\n"s;
 
         // Act
-        auto result = write_csv(headers, data1, data2, data3);
+        auto result = write_csv_v(headers, data1, data2, data3);
 
         // Assert
         EXPECT_EQ(result, expected);
@@ -98,7 +98,7 @@ namespace fastcsv
         auto expected = "col1,,\n1,two,ab\n3,four,cd\n"s;
 
         // Act
-        auto result = write_csv(headers, data1, data2, data3);
+        auto result = write_csv_v(headers, data1, data2, data3);
 
         // Assert
         EXPECT_EQ(result, expected);
@@ -114,7 +114,7 @@ namespace fastcsv
         auto expected = "col1,col2,col3\n1,two,ab\n3,four,cd\n"s;
 
         // Act
-        auto result = write_csv(headers, data1, data2, data3);
+        auto result = write_csv_v(headers, data1, data2, data3);
 
         // Assert
         EXPECT_EQ(result, expected);
@@ -129,11 +129,11 @@ namespace fastcsv
         auto expected3 = std::vector{ "ab"s, "cd"s };
 
         // Act
-        auto csvStringWithHeaders = write_csv(headers, expected1, expected2, expected3);
+        auto csvStringWithHeaders = write_csv_v(headers, expected1, expected2, expected3);
         auto [intermediate1, intermediate2, intermediate3]
-            = read_csv<int, std::string, std::string>(csvStringWithHeaders);
-        auto csvString = write_csv(intermediate1, intermediate2, intermediate3);
-        auto [result1, result2, result3] = read_csv<int, std::string, std::string>(csvString, no_header);
+            = read_csv_v<int, std::string, std::string>(csvStringWithHeaders);
+        auto csvString = write_csv_v(intermediate1, intermediate2, intermediate3);
+        auto [result1, result2, result3] = read_csv_v<int, std::string, std::string>(csvString, no_header);
 
         // Assert
         EXPECT_EQ(result1.size(), expected1.size());

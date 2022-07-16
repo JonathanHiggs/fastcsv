@@ -280,6 +280,35 @@ namespace fastcsv
             return vectors;
         }
 
+        template <typename TAdapter, typename TIn>
+        using adapter_result_t = std::invoke_result_t<TAdapter, TIn>;
+
+        template <typename TAdapter, typename TOut, typename TIn, typename = void>
+        inline constexpr bool is_adapter_v = false;
+
+        template <typename TAdapter, typename TOut, typename TIn>
+        inline constexpr bool is_adapter_v<
+            TAdapter,
+            TOut,
+            TIn,
+            std::enable_if_t<std::is_convertible_v<adapter_result_t<TAdapter, TIn>, TOut>>> = true;
+
+#if defined(FASTCSV_HAS_CXX20)
+        template <typename TAdapter, typename TOut, typename TIn>
+        concept adapter = is_adapter_v<TAdapter, TOut, TIn>;
+
+        using identity = std::identity;
+#else
+        struct identity
+        {
+            template <typename T>
+            FASTCSV_CONSTEXPR T && operator()(T && t) const noexcept
+            {
+                return std::forward<T>(t);
+            }
+        };
+#endif
+
     }  // namespace detail
 
     class fastcsv_exception final : public std::exception
@@ -669,7 +698,7 @@ namespace fastcsv
             }
         }
 
-        template <typename T, std::enable_if_t<!std::is_same_v<T, void>>* = nullptr>
+        template <typename T, std::enable_if_t<!std::is_same_v<T, void>> * = nullptr>
         void write_line(std::ostream & stream, const std::vector<T> & vector, size_t index, bool & first)
         {
             to_csv<T>{ stream, first }.write(vector[index]);
@@ -684,9 +713,17 @@ namespace fastcsv
 
     FASTCSV_CONSTEXPR inline detail::no_header_tag no_header{};
 
-    template <typename T>
+#if defined(FASTCSV_HAS_CXX20)
+    template <typename T, typename TIntermediate, detail::adapter<T, TIntermediate> TAdapter>
+#else
+    template <
+        typename T,
+        typename TIntermediate,
+        typename TAdapter,
+        std::enable_if_t<detail::is_adapter_v<TAdapter, T, TIntermediate>> * = nullptr>
+#endif
     FASTCSV_NO_DISCARD std::vector<T> read_csv(
-        const std::string & content, std::optional<detail::no_header_tag> noHeader = std::nullopt)
+        const std::string & content, TAdapter adapter, std::optional<detail::no_header_tag> noHeader = std::nullopt)
     {
         if (content.empty()) { return std::vector<T>(); }
 
@@ -704,39 +741,17 @@ namespace fastcsv
         while (!linesIterator.done())
         {
             auto columnIterator = detail::csv_iterator(linesIterator.consume(), detail::default_column_delimiter);
-            data.emplace_back(from_csv<T>{ columnIterator }());
+            data.emplace_back(adapter(from_csv<TIntermediate>{ columnIterator }()));
         }
 
         return data;
     }
 
-    template <typename... Ts, std::enable_if_t<sizeof...(Ts) >= 2ul> * = nullptr>
-    FASTCSV_NO_DISCARD std::tuple<std::vector<Ts>...> read_csv(
+    template <typename T>
+    FASTCSV_NO_DISCARD std::vector<T> read_csv(
         const std::string & content, std::optional<detail::no_header_tag> noHeader = std::nullopt)
     {
-        if (content.empty()) { return std::tuple<std::vector<Ts>...>(); }
-
-        auto linesIterator = detail::csv_iterator(content, detail::default_line_delimiter);
-        if (!noHeader.has_value()) { linesIterator.advance(); }
-
-        std::tuple<std::vector<Ts>...> data = [&]() {
-            if (linesIterator.current_element_size() != 0ul)
-            {
-                // Simple heuristic to estimate the total number of lines to avoid lots of vector resizing
-                auto estimatedNumberOfLines = content.size() / linesIterator.current_element_size();
-                return detail::make_reserved_vectors<Ts...>(estimatedNumberOfLines);
-            }
-
-            return std::tuple<std::vector<Ts>...>();
-        }();
-
-        while (!linesIterator.done())
-        {
-            auto columnIterator = detail::csv_iterator(linesIterator.consume(), detail::default_column_delimiter);
-            detail::read_line<0ul, Ts...>(columnIterator, data);
-        }
-
-        return data;
+        return read_csv<T, T, detail::identity>(content, detail::identity{}, noHeader);
     }
 
     template <typename T>
@@ -777,16 +792,28 @@ namespace fastcsv
         return read_csv<T>(content);
     }
 
-    template <typename T>
+
+#if defined(FASTCSV_HAS_CXX20)
+    template <typename T, typename TIntermediate, detail::adapter<TIntermediate, T> TAdapter>
+#else
+    template <
+        typename T,
+        typename TIntermediate,
+        typename TAdapter,
+        std::enable_if_t<detail::is_adapter_v<TAdapter, TIntermediate, T>> * = nullptr>
+#endif
     FASTCSV_NO_DISCARD void write_csv(
-        std::ostream & os, const std::vector<T> & data, std::optional<detail::no_header_tag> noHeader = std::nullopt)
+        std::ostream & os,
+        const std::vector<T> & data,
+        TAdapter adapter,
+        std::optional<detail::no_header_tag> noHeader = std::nullopt)
     {
-        if constexpr (has_csv_headers<T>)
+        if constexpr (has_csv_headers<TIntermediate>)
         {
             if (!noHeader.has_value())
             {
                 auto first = true;
-                auto headers = csv_headers<T>{}();
+                auto headers = csv_headers<TIntermediate>{}();
                 for (auto header : headers)
                 {
                     if (!first) { os << detail::default_column_delimiter; }
@@ -797,18 +824,118 @@ namespace fastcsv
             }
         }
 
-        auto writer = to_csv<T>{ os, true };
+        auto writer = to_csv<TIntermediate>{ os, true };
 
         for (const auto & value : data)
         {
             writer.first = true;
-            writer.write(value);
+            writer.write(adapter(value));
             os << detail::default_line_delimiter;
         }
     }
 
-    template <typename... Ts>
+    template <typename T>
     FASTCSV_NO_DISCARD void write_csv(
+        std::ostream & os, const std::vector<T> & data, std::optional<detail::no_header_tag> noHeader = std::nullopt)
+    {
+        write_csv<T, T, detail::identity>(os, data, detail::identity{}, noHeader);
+    }
+
+#if defined(FASTCSV_HAS_CXX20)
+    template <typename T, typename TIntermediate, detail::adapter<TIntermediate, T> TAdapter>
+#else
+    template <
+        typename T,
+        typename TIntermediate,
+        typename TAdapter,
+        std::enable_if_t<detail::is_adapter_v<TAdapter, TIntermediate, T>> * = nullptr>
+#endif
+    FASTCSV_NO_DISCARD std::string write_csv(
+        const std::vector<T> & data, TAdapter adapter, std::optional<detail::no_header_tag> noHeader = std::nullopt)
+    {
+        std::stringstream stream;
+        write_csv<T, TIntermediate, TAdapter>(stream, data, adapter, noHeader);
+        return stream.str();
+    }
+
+    template <typename T>
+    FASTCSV_NO_DISCARD std::string write_csv(
+        const std::vector<T> & data, std::optional<detail::no_header_tag> noHeader = std::nullopt)
+    {
+        return write_csv<T, T, detail::identity>(data, detail::identity{}, noHeader);
+    }
+
+#if defined(FASTCSV_HAS_CXX20)
+    template <typename T, typename TIntermediate, detail::adapter<TIntermediate, T> TAdapter>
+#else
+    template <
+        typename T,
+        typename TIntermediate,
+        typename TAdapter,
+        std::enable_if_t<detail::is_adapter_v<TAdapter, TIntermediate, T>> * = nullptr>
+#endif
+    void save_csv(
+        const std::filesystem::path & filePath,
+        const std::vector<T> & data,
+        TAdapter adapter,
+        std::optional<detail::no_header_tag> noHeader = std::nullopt)
+    {
+        if (filePath.extension() != detail::csv_extension)
+        {
+            throw fastcsv_exception(fmt::format(
+                "File does not have the required '.{}' extension: {}  {} {}",
+                detail::csv_extension,
+                __FILE__,
+                __LINE__));
+        }
+
+        auto file = std::ofstream(filePath, std::ios::out | std::ios::binary);
+        write_csv<T, TIntermediate, TAdapter>(file, data, adapter, noHeader);
+    }
+
+    template <typename T>
+    void save_csv(
+        const std::filesystem::path & filePath,
+        const std::vector<T> & data,
+        std::optional<detail::no_header_tag> noHeader = std::nullopt)
+    {
+        write_csv<T, T, detail::identity>(filePath, data, detail::identity{}, noHeader);
+    }
+
+
+    template <typename... Ts>
+    FASTCSV_NO_DISCARD std::tuple<std::vector<Ts>...> read_csv_v(
+        const std::string & content, std::optional<detail::no_header_tag> noHeader = std::nullopt)
+    {
+        if (content.empty()) { return std::tuple<std::vector<Ts>...>(); }
+
+        auto linesIterator = detail::csv_iterator(content, detail::default_line_delimiter);
+        if (!noHeader.has_value()) { linesIterator.advance(); }
+
+        std::tuple<std::vector<Ts>...> data = [&]() {
+            if (linesIterator.current_element_size() != 0ul)
+            {
+                // Simple heuristic to estimate the total number of lines to avoid lots of vector resizing
+                auto estimatedNumberOfLines = content.size() / linesIterator.current_element_size();
+                return detail::make_reserved_vectors<Ts...>(estimatedNumberOfLines);
+            }
+
+            return std::tuple<std::vector<Ts>...>();
+        }();
+
+        while (!linesIterator.done())
+        {
+            auto columnIterator = detail::csv_iterator(linesIterator.consume(), detail::default_column_delimiter);
+            detail::read_line<0ul, Ts...>(columnIterator, data);
+        }
+
+        return data;
+    }
+
+    // ToDo: load_csv_v
+
+    template <typename... Ts>
+    FASTCSV_NO_DISCARD void write_csv_v(
         std::ostream & os, const std::vector<std::string_view> & headers, const std::vector<Ts> &... vectors)
     {
         if (!headers.empty())
@@ -839,37 +966,25 @@ namespace fastcsv
         }
     }
 
-    template <typename T>
-    FASTCSV_NO_DISCARD std::string write_csv(
-        const std::vector<T> & data, std::optional<detail::no_header_tag> noHeader = std::nullopt)
+    template <typename... Ts>
+    FASTCSV_NO_DISCARD std::string write_csv_v(const std::vector<Ts> &... vectors)
     {
         std::stringstream stream;
-        write_csv(stream, data, noHeader);
+        write_csv_v<Ts...>(stream, {}, vectors...);
         return stream.str();
     }
 
     template <typename... Ts>
-    FASTCSV_NO_DISCARD std::string write_csv(const std::vector<Ts> &... vectors)
-    {
-        std::stringstream stream;
-        write_csv<Ts...>(stream, {}, vectors...);
-        return stream.str();
-    }
-
-    template <typename... Ts>
-    FASTCSV_NO_DISCARD std::string write_csv(
+    FASTCSV_NO_DISCARD std::string write_csv_v(
         const std::vector<std::string_view> & headers, const std::vector<Ts> &... vectors)
     {
         std::stringstream stream;
-        write_csv<Ts...>(stream, headers, vectors...);
+        write_csv_v<Ts...>(stream, headers, vectors...);
         return stream.str();
     }
 
-    template <typename T>
-    void save_csv(
-        const std::filesystem::path & filePath,
-        const std::vector<T> & data,
-        std::optional<detail::no_header_tag> noHeader = std::nullopt)
+    template <typename... Ts>
+    void save_csv_v(const std::filesystem::path & filePath, const std::vector<Ts> &... vectors)
     {
         if (filePath.extension() != detail::csv_extension)
         {
@@ -881,27 +996,11 @@ namespace fastcsv
         }
 
         auto file = std::ofstream(filePath, std::ios::out | std::ios::binary);
-        write_csv(file, data, noHeader);
+        write_csv_v(file, {}, vectors);
     }
 
     template <typename... Ts>
-    void save_csv(const std::filesystem::path & filePath, const std::vector<Ts> &... vectors)
-    {
-        if (filePath.extension() != detail::csv_extension)
-        {
-            throw fastcsv_exception(fmt::format(
-                "File does not have the required '.{}' extension: {}  {} {}",
-                detail::csv_extension,
-                __FILE__,
-                __LINE__));
-        }
-
-        auto file = std::ofstream(filePath, std::ios::out | std::ios::binary);
-        write_csv(file, {}, vectors);
-    }
-
-    template <typename... Ts>
-    void save_csv(
+    void save_csv_v(
         const std::filesystem::path & filePath,
         const std::vector<std::string_view> & headers,
         const std::vector<Ts> &... vectors)
@@ -916,7 +1015,7 @@ namespace fastcsv
         }
 
         auto file = std::ofstream(filePath, std::ios::out | std::ios::binary);
-        write_csv(file, headers, vectors);
+        write_csv_v(file, headers, vectors);
     }
 
 }  // namespace fastcsv
