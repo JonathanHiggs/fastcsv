@@ -133,8 +133,7 @@ namespace fastcsv
         auto [intermediate1, intermediate2, intermediate3]
             = read_csv<int, std::string, std::string>(csvStringWithHeaders);
         auto csvString = write_csv(intermediate1, intermediate2, intermediate3);
-        auto [result1, result2, result3]
-            = read_csv<int, std::string, std::string>(csvString, no_header);
+        auto [result1, result2, result3] = read_csv<int, std::string, std::string>(csvString, no_header);
 
         // Assert
         EXPECT_EQ(result1.size(), expected1.size());

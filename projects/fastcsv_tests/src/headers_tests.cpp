@@ -19,10 +19,7 @@ namespace fastcsv
             return std::tie(val1, val2) == std::tie(other.val1, other.val2);
         }
 
-        inline FASTCSV_CONSTEXPR bool operator!=(const headers & other) const noexcept
-        {
-            return !(*this == other);
-        }
+        inline FASTCSV_CONSTEXPR bool operator!=(const headers & other) const noexcept { return !(*this == other); }
     };
 
     template <>
@@ -37,16 +34,13 @@ namespace fastcsv
     template <>
     struct from_csv<headers> final : csv_reader
     {
-        FASTCSV_NO_DISCARD headers operator()() const
-        {
-            return headers{ read<int>(), read<std::string>() };
-        }
+        FASTCSV_NO_DISCARD headers operator()() const { return headers{ read<int>(), read<std::string>() }; }
     };
 
     template <>
     struct to_csv<headers> final : csv_writer
     {
-        void operator()(const headers& value)
+        void operator()(const headers & value)
         {
             write(value.val1);
             write(value.val2);

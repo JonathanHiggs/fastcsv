@@ -89,4 +89,4 @@ namespace fastcsv
         EXPECT_EQ(result[0], "\"some string\""s);
     }
 
-}
+}  // namespace fastcsv

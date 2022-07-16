@@ -73,4 +73,4 @@ namespace fastcsv
         }
     }
 
-}
+}  // namespace fastcsv
