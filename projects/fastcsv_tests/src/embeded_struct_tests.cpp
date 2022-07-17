@@ -91,7 +91,12 @@ namespace fastcsv
         // Arrange
         auto data
             = std::vector<composite>{ composite{ "a", embeded{ "one", 1 } }, composite{ "b", embeded{ "two", 2 } } };
+
+#if defined(FASTCSV_PLATFORM_WIN)
+        auto expected = "a,one,1\r\nb,two,2\r\n"s;
+#else
         auto expected = "a,one,1\nb,two,2\n"s;
+#endif
 
         // Act
         auto result = write_csv(data);

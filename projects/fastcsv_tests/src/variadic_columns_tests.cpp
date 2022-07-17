@@ -63,7 +63,12 @@ namespace fastcsv
         auto data1 = std::vector{ 1, 3 };
         auto data2 = std::vector{ "two"s, "four"s };
         auto data3 = std::vector{ "ab"s, "cd"s };
+
+#if defined(FASTCSV_PLATFORM_WIN)
+        auto expected = "1,two,ab\r\n3,four,cd\r\n"s;
+#else
         auto expected = "1,two,ab\n3,four,cd\n"s;
+#endif
 
         // Act
         auto result = write_csv_v(data1, data2, data3);
@@ -79,7 +84,12 @@ namespace fastcsv
         auto data1 = std::vector{ 1, 3 };
         auto data2 = std::vector{ "two"s, "four"s };
         auto data3 = std::vector{ "ab"s, "cd"s };
+
+#if defined(FASTCSV_PLATFORM_WIN)
+        auto expected = "col1,col2,col3\r\n1,two,ab\r\n3,four,cd\r\n"s;
+#else
         auto expected = "col1,col2,col3\n1,two,ab\n3,four,cd\n"s;
+#endif
 
         // Act
         auto result = write_csv_v(headers, data1, data2, data3);
@@ -95,7 +105,12 @@ namespace fastcsv
         auto data1 = std::vector{ 1, 3 };
         auto data2 = std::vector{ "two"s, "four"s };
         auto data3 = std::vector{ "ab"s, "cd"s };
+
+#if defined(FASTCSV_PLATFORM_WIN)
+        auto expected = "col1,,\r\n1,two,ab\r\n3,four,cd\r\n"s;
+#else
         auto expected = "col1,,\n1,two,ab\n3,four,cd\n"s;
+#endif
 
         // Act
         auto result = write_csv_v(headers, data1, data2, data3);
@@ -111,7 +126,12 @@ namespace fastcsv
         auto data1 = std::vector{ 1, 3 };
         auto data2 = std::vector{ "two"s, "four"s };
         auto data3 = std::vector{ "ab"s, "cd"s };
+
+#if defined(FASTCSV_PLATFORM_WIN)
+        auto expected = "col1,col2,col3\r\n1,two,ab\r\n3,four,cd\r\n"s;
+#else
         auto expected = "col1,col2,col3\n1,two,ab\n3,four,cd\n"s;
+#endif
 
         // Act
         auto result = write_csv_v(headers, data1, data2, data3);

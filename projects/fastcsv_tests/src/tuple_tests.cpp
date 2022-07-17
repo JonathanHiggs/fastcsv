@@ -30,8 +30,13 @@ namespace fastcsv
     TEST(tuple_tests, write)
     {
         // Arrange
-        auto expected = "1,one\n2,two\n"s;
         auto data = std::vector<std::tuple<int, std::string>>{ std::make_tuple(1, "one"), std::make_tuple(2, "two") };
+
+#if defined(FASTCSV_PLATFORM_WIN)
+        auto expected = "1,one\r\n2,two\r\n"s;
+#else
+        auto expected = "1,one\n2,two\n"s;
+#endif
 
         // Act
         auto result = write_csv<std::tuple<int, std::string>>(data);
@@ -81,9 +86,14 @@ namespace fastcsv
     TEST(tuple_tests, write_repeated_type)
     {
         // Arrange
-        auto expected = "1,one\n2,two\n"s;
         auto data = std::vector<std::tuple<std::string, std::string>>{ std::make_tuple("1", "one"),
                                                                        std::make_tuple("2", "two") };
+
+#if defined(FASTCSV_PLATFORM_WIN)
+        auto expected = "1,one\r\n2,two\r\n"s;
+#else
+        auto expected = "1,one\n2,two\n"s;
+#endif
 
         // Act
         auto result = write_csv<std::tuple<std::string, std::string>>(data);

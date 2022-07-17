@@ -46,7 +46,12 @@ namespace fastcsv
     {
         // Arrange
         auto data = std::vector<bool>{ true, false };
+
+#if defined(FASTCSV_PLATFORM_WIN)
+        auto expected = "true\r\nfalse\r\n"s;
+#else
         auto expected = "true\nfalse\n"s;
+#endif
 
         // Act
         auto result = write_csv(data);

@@ -115,7 +115,12 @@ namespace fastcsv
     {
         // Arrange
         auto data = std::vector{ adapted{ 1 }, adapted{ 2 }, adapted{ "three" }, adapted{ "four" } };
+
+#if defined(FASTCSV_PLATFORM_WIN)
+        auto expected = "1,\r\n2,\r\n,three\r\n,four\r\n"s;
+#else
         auto expected = "1,\n2,\n,three\n,four\n"s;
+#endif
 
         // Act
         auto result = write_csv<adapted, intermediate>(data, adapter{});
@@ -128,7 +133,12 @@ namespace fastcsv
     {
         // Arrange
         auto data = std::vector{ adapted{ 1 }, adapted{ 2 }, adapted{ "three" }, adapted{ "four" } };
+
+#if defined(FASTCSV_PLATFORM_WIN)
+        auto expected = "1,\r\n2,\r\n,three\r\n,four\r\n"s;
+#else
         auto expected = "1,\n2,\n,three\n,four\n"s;
+#endif
 
         auto adapter = [](const adapted & value) {
             return intermediate{

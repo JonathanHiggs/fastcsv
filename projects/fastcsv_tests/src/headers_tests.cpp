@@ -94,7 +94,12 @@ namespace fastcsv
     {
         // Arrange
         auto data = std::vector<headers>{ headers{ 1, "two" }, headers{ 3, "four" } };
+
+#if defined(FASTCSV_PLATFORM_WIN)
+        auto expected = "1,two\r\n3,four\r\n"s;
+#else
         auto expected = "1,two\n3,four\n"s;
+#endif
 
         // Act
         auto result = write_csv(data, no_header);
@@ -107,7 +112,12 @@ namespace fastcsv
     {
         // Arrange
         auto data = std::vector<headers>{ headers{ 1, "two" }, headers{ 3, "four" } };
+
+#if defined(FASTCSV_PLATFORM_WIN)
+        auto expected = "val1,val2\r\n1,two\r\n3,four\r\n"s;
+#else
         auto expected = "val1,val2\n1,two\n3,four\n"s;
+#endif
 
         // Act
         auto result = write_csv(data);

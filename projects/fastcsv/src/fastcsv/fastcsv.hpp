@@ -95,130 +95,17 @@ namespace fastcsv
     namespace detail
     {
 
+
         inline static constexpr std::string_view csv_extension = ".csv";
-        inline static constexpr char default_column_delimiter = ',';
-        inline static constexpr char default_line_delimiter = '\n';
         inline static constexpr char quote_char = '"';
         inline static constexpr char escape_char = '\\';
+        inline static constexpr char default_column_delimiter = ',';
 
-        /// <summary>
-        /// Iterator for consuming string data with split by a delimiter
-        /// </summary>
-        /// <typeparam name="TElem"></typeparam>
-        /// <typeparam name="TTraits"></typeparam>
-        template <typename TElem, typename TTraits>
-        class basic_csv_iterator final
-        {
-        private:
-            std::basic_string_view<TElem, TTraits> content_;
-            TElem delimiter_;
-            size_t current_;
-            size_t next_;
-
-        public:
-            FASTCSV_CONSTEXPR basic_csv_iterator(
-                std::basic_string_view<TElem, TTraits> content, TElem delimiter) noexcept
-              : content_(content), delimiter_(delimiter), current_(0ul), next_(0ul)
-            {
-                next_ = next(delimiter_, current_);
-                auto nextQuote = next(quote_char, current_);
-
-                if (nextQuote < next_)
-                {
-                    do
-                    {
-                        nextQuote = next(quote_char, nextQuote + 1ul);
-                    }
-                    while (content_[nextQuote - 1ul] == escape_char);
-                    next_ = next(delimiter_, nextQuote);
-                }
-            }
-
-            /// <summary>
-            /// Checks if the content is completed
-            /// </summary>
-            /// <returns>true if there are on more elements; false otherwise</returns>
-            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR bool done() const noexcept { return current_ == next_; }
-
-            /// <summary>
-            /// The size of the current element
-            /// </summary>
-            /// <returns>Size of the current element</returns>
-            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR size_t current_element_size() const noexcept
-            {
-                return next_ - current_;
-            }
-
-            /// <summary>
-            /// Checks if the current element is empty
-            /// </summary>
-            /// <returns>true if the current element is empty; false otherwise</returns>
-            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR bool current_element_empty() const noexcept
-            {
-                return current_element_size() == 0ul;
-            }
-
-            /// <summary>
-            /// The contents current element
-            /// </summary>
-            /// <returns></returns>
-            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR std::basic_string_view<TElem, TTraits> current_element() const noexcept
-            {
-                return std::basic_string_view<TElem, TTraits>(content_.data() + current_, next_ - current_);
-            }
-
-            /// <summary>
-            /// Advances the iterator to the next element
-            /// </summary>
-            void FASTCSV_CONSTEXPR advance()
-            {
-                current_ = next_ + 1ul;
-
-                if (current_ >= content_.size())
-                {
-                    current_ = next_ = content_.size();
-                    return;
-                }
-
-                next_ = next(delimiter_, current_);
-                auto nextQuote = next(quote_char, current_);
-
-                if (nextQuote < next_)
-                {
-                    do
-                    {
-                        nextQuote = next(quote_char, nextQuote + 1ul);
-                    }
-                    while (content_[nextQuote - 1ul] == escape_char);
-                    next_ = next(delimiter_, nextQuote);
-                }
-            }
-
-            /// <summary>
-            /// Consumes the current element by advancing
-            /// </summary>
-            /// <returns>Returns the contents of the element before advancing</returns>
-            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR std::basic_string_view<TElem, TTraits> consume()
-            {
-                auto result = current_element();
-                advance();
-                return result;
-            }
-
-        private:
-            /// <summary>
-            /// Gets the position of the next instance of the supplied delimiter after the given position
-            /// </summary>
-            /// <param name="delimiter">Delimiter to search for</param>
-            /// <param name="position">Position to search from</param>
-            /// <returns>Position of the next instance of the delimiter or end if not found</returns>
-            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR size_t next(TElem delimiter, size_t position)
-            {
-                return std::min(content_.size(), content_.find(delimiter, position));
-            }
-        };
-
-        using csv_iterator = basic_csv_iterator<char, std::char_traits<char>>;
+#if defined(FASTCSV_PLATFORM_WIN)
+        inline static constexpr std::string_view default_line_delimiter = "\r\n";
+#else
+        inline static constexpr std::string_view default_line_delimiter = "\n";
+#endif
 
         template <typename TElem, typename TTraits = std::char_traits<TElem>>
         class basic_csv_parser final
@@ -287,7 +174,12 @@ namespace fastcsv
                     advance_column();
                 }
 
-                lineStart_ = columnStart_ = std::min(columnEnd_ + 1ul, content_.size());
+                auto advanceChars = 1ul
+                                    + static_cast<size_t>(
+                                        content_[columnEnd_] == '\r' && columnEnd_ + 1ul < content_.size()
+                                        && content_[columnEnd_ + 1ul] == '\n');
+
+                lineStart_ = columnStart_ = std::min(columnEnd_ + advanceChars, content_.size());
                 columnEnd_ = find_column_end(columnStart_);
             }
 
@@ -481,7 +373,7 @@ namespace fastcsv
 
     struct csv_reader
     {
-        detail::csv_iterator & iterator;
+        detail::csv_parser & parser;
 
         template <typename TRead, typename... TArgs>
         FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR inline TRead read(TArgs &&... args) const
@@ -491,7 +383,7 @@ namespace fastcsv
                 throw fastcsv_exception(fmt::format("Recursive call  {} {}", __FILE__, __LINE__));
             }
 
-            return from_csv<TRead>{ iterator }(std::forward<TArgs>()...);
+            return from_csv<TRead>{ parser }(std::forward<TArgs>()...);
         }
 
         template <typename TRead, typename... TArgs>
@@ -502,7 +394,7 @@ namespace fastcsv
                 throw fastcsv_exception(fmt::format("Recursive call  {} {}", __FILE__, __LINE__));
             }
 
-            return from_csv<std::optional<TRead>>{ iterator }(std::forward<TArgs>(args)...);
+            return from_csv<std::optional<TRead>>{ parser }(std::forward<TArgs>(args)...);
         }
     };
 
@@ -511,7 +403,7 @@ namespace fastcsv
     {
         FASTCSV_NO_DISCARD inline T operator()(const int base = 10) const
         {
-            auto element = iterator.consume();
+            auto element = parser.consume_column();
             return parse(element);
         }
 
@@ -553,7 +445,7 @@ namespace fastcsv
     {
         FASTCSV_NO_DISCARD inline T operator()(const std::chars_format fmt = std::chars_format::general) const
         {
-            auto element = iterator.consume();
+            auto element = parser.consume_column();
             return parse(element, fmt);
         }
 
@@ -587,7 +479,7 @@ namespace fastcsv
     {
         FASTCSV_NO_DISCARD inline char operator()() const
         {
-            auto value = iterator.consume();
+            auto value = parser.consume_column();
             if (value.size() != 1ul)
             {
                 // ToDo:
@@ -603,7 +495,7 @@ namespace fastcsv
     {
         FASTCSV_NO_DISCARD inline std::string operator()() const
         {
-            auto value = iterator.consume();
+            auto value = parser.consume_column();
             if (value.empty()) { return std::string(); }
 
             if (value.size() != 1ul && value[0] == detail::quote_char
@@ -636,7 +528,7 @@ namespace fastcsv
     {
         FASTCSV_NO_DISCARD inline bool operator()() const
         {
-            auto value = iterator.consume();
+            auto value = parser.consume_column();
 
             if (value == "true" || value == "TRUE" || value == "True" || value == "t") { return true; }
             if (value == "false" || value == "FALSE" || value == "False" || value == "f") { return false; }
@@ -650,13 +542,13 @@ namespace fastcsv
     {
         FASTCSV_NO_DISCARD inline std::optional<T> operator()() const
         {
-            if (iterator.current_element_empty())
+            if (parser.current_column_empty())
             {
-                iterator.advance();
+                parser.advance_column();
                 return std::nullopt;
             }
 
-            return from_csv<T>{ iterator }();
+            return from_csv<T>{ parser }();
         }
     };
 
@@ -666,7 +558,7 @@ namespace fastcsv
     {
         FASTCSV_NO_DISCARD inline std::chrono::year_month_day operator()() const
         {
-            auto element = iterator.consume();
+            auto element = parser.consume_column();
 
             if (element.size() != 10ul) { throw fastcsv_exception(""); }
 
@@ -827,16 +719,16 @@ namespace fastcsv
     {
 
         template <size_t I = 0ul, typename... Ts>
-        void read_line(csv_iterator & iterator, std::tuple<std::vector<Ts>...> & vectors)
+        void read_line(csv_parser & parser, std::tuple<std::vector<Ts>...> & vectors)
         {
             if constexpr (I == sizeof...(Ts)) { return; }
             else
             {
                 auto & vec = std::get<I>(vectors);
                 using value_type = typename std::remove_reference_t<decltype(vec)>::value_type;
-                vec.emplace_back(from_csv<value_type>{ iterator }());
+                vec.emplace_back(from_csv<value_type>{ parser }());
 
-                read_line<I + 1ul, Ts...>(iterator, vectors);
+                read_line<I + 1ul, Ts...>(parser, vectors);
             }
         }
 
@@ -869,21 +761,22 @@ namespace fastcsv
     {
         if (content.empty()) { return std::vector<T>(); }
 
-        auto linesIterator = detail::csv_iterator(content, detail::default_line_delimiter);
-        if (!noHeader.has_value()) { linesIterator.advance(); }
+        auto parser
+            = detail::csv_parser(content, detail::default_column_delimiter, detail::quote_char, detail::escape_char);
+        if (!noHeader.has_value()) { parser.advance_line(); }
 
         auto data = std::vector<T>();
-        if (linesIterator.current_element_size() != 0ul)
-        {
-            // Simple heuristic to estimate the total number of lines to avoid lots of vector resizing
-            auto estimatedNumberOfLines = content.size() / linesIterator.current_element_size();
-            data.reserve(estimatedNumberOfLines);
-        }
+        // if (linesIterator.current_element_size() != 0ul)
+        // {
+        //     // Simple heuristic to estimate the total number of lines to avoid lots of vector resizing
+        //     auto estimatedNumberOfLines = content.size() / linesIterator.current_element_size();
+        //     data.reserve(estimatedNumberOfLines);
+        // }
 
-        while (!linesIterator.done())
+        while (!parser.end_of_file())
         {
-            auto columnIterator = detail::csv_iterator(linesIterator.consume(), detail::default_column_delimiter);
-            data.emplace_back(adapter(from_csv<TIntermediate>{ columnIterator }()));
+            data.emplace_back(adapter(from_csv<TIntermediate>{ parser }()));
+            parser.advance_line();
         }
 
         return data;
@@ -1051,24 +944,25 @@ namespace fastcsv
     {
         if (content.empty()) { return std::tuple<std::vector<Ts>...>(); }
 
-        auto linesIterator = detail::csv_iterator(content, detail::default_line_delimiter);
-        if (!noHeader.has_value()) { linesIterator.advance(); }
+        auto parser
+            = detail::csv_parser(content, detail::default_column_delimiter, detail::quote_char, detail::escape_char);
+        if (!noHeader.has_value()) { parser.advance_line(); }
 
         std::tuple<std::vector<Ts>...> data = [&]() {
-            if (linesIterator.current_element_size() != 0ul)
-            {
-                // Simple heuristic to estimate the total number of lines to avoid lots of vector resizing
-                auto estimatedNumberOfLines = content.size() / linesIterator.current_element_size();
-                return detail::make_reserved_vectors<Ts...>(estimatedNumberOfLines);
-            }
+            // if (parser.current_element_size() != 0ul)
+            // {
+            //     // Simple heuristic to estimate the total number of lines to avoid lots of vector resizing
+            //     auto estimatedNumberOfLines = content.size() / parser.current_element_size();
+            //     return detail::make_reserved_vectors<Ts...>(estimatedNumberOfLines);
+            // }
 
             return std::tuple<std::vector<Ts>...>();
         }();
 
-        while (!linesIterator.done())
+        while (!parser.end_of_file())
         {
-            auto columnIterator = detail::csv_iterator(linesIterator.consume(), detail::default_column_delimiter);
-            detail::read_line<0ul, Ts...>(columnIterator, data);
+            detail::read_line<0ul, Ts...>(parser, data);
+            parser.advance_line();
         }
 
         return data;

@@ -60,7 +60,12 @@ namespace fastcsv
     {
         // Arrange
         auto data = std::vector<simple>{ simple{ "One", 1 }, simple{ "Two", 2 }, simple{ "Three", 3 } };
+
+#if defined(FASTCSV_PLATFORM_WIN)
+        auto expected = "One,1\r\nTwo,2\r\nThree,3\r\n"s;
+#else
         auto expected = "One,1\nTwo,2\nThree,3\n"s;
+#endif
 
         // Act
         auto result = write_csv(data);

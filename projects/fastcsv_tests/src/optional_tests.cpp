@@ -71,7 +71,12 @@ namespace fastcsv
                                             optionals{ "no-values", std::nullopt, std::nullopt },
                                             optionals{ "int-values", 1, std::nullopt },
                                             optionals{ "str-values", std::nullopt, "str" } };
+
+#if defined(FASTCSV_PLATFORM_WIN)
+        auto expected = "all-values,1,str\r\nno-values,,\r\nint-values,1,\r\nstr-values,,str\r\n"s;
+#else
         auto expected = "all-values,1,str\nno-values,,\nint-values,1,\nstr-values,,str\n"s;
+#endif
 
         // Act
         auto result = write_csv(data);
