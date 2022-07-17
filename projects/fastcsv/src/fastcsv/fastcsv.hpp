@@ -95,17 +95,64 @@ namespace fastcsv
     namespace detail
     {
 
+        // clang-format off
+        template <typename TElem, typename TTraits = std::char_traits<TElem>>
+        inline constexpr std::basic_string_view<TElem, TTraits> csv_extension;
 
-        inline static constexpr std::string_view csv_extension = ".csv";
-        inline static constexpr char quote_char = '"';
-        inline static constexpr char escape_char = '\\';
-        inline static constexpr char default_column_delimiter = ',';
+        template <> inline constexpr std::string_view csv_extension<char> = ".csv";
+        template <> inline constexpr std::wstring_view csv_extension<wchar_t> = LR"(.csv)";
+
+
+        template <typename TElem, typename TTraits = std::char_traits<TElem>>
+        inline constexpr TElem quote;
+
+        template <> inline constexpr char quote<char> = '"';
+        template <> inline constexpr wchar_t quote<wchar_t> = L'"';
+
+
+        template <typename TElem, typename TTraits = std::char_traits<TElem>>
+        inline constexpr TElem escape;
+
+        template <> inline constexpr char escape<char> = '\\';
+        template <> inline constexpr wchar_t escape<wchar_t> = L'\\';
+
+
+        template <typename TElem, typename TTraits = std::char_traits<TElem>>
+        inline constexpr TElem default_column_delimiter;
+
+        template <> inline constexpr char default_column_delimiter<char> = ',';
+        template <> inline constexpr wchar_t default_column_delimiter<wchar_t> = L',';
+
+
+        template <typename TElem, typename TTraits = std::char_traits<TElem>>
+        inline constexpr TElem new_line;
+
+        template <> inline constexpr char new_line<char> = '\n';
+        template <> inline constexpr wchar_t new_line<wchar_t> = L'\n';
+
+
+        template <typename TElem, typename TTraits = std::char_traits<TElem>>
+        inline constexpr TElem caridge_return;
+
+        template <> inline constexpr char caridge_return<char> = '\r';
+        template <> inline constexpr wchar_t caridge_return<wchar_t> = L'\r';
+
+
+        template <typename TElem, typename TTraits = std::char_traits<TElem>>
+        inline constexpr std::basic_string_view<TElem, TTraits> caridge_return_new_line;
+
+        template <> inline constexpr std::string_view caridge_return_new_line<char> = "\r\n";
+        template <> inline constexpr std::wstring_view caridge_return_new_line<wchar_t> = LR"(\r\n)";
+
 
 #if defined(FASTCSV_PLATFORM_WIN)
-        inline static constexpr std::string_view default_line_delimiter = "\r\n";
+        template <typename TElem, typename TTraits = std::char_traits<TElem>>
+        inline constexpr std::basic_string_view<TElem, TTraits> default_line_delimiter = caridge_return_new_line<TElem, TTraits>;
 #else
-        inline static constexpr std::string_view default_line_delimiter = "\n";
+        template <typename TElem, typename TTraits = std::char_traits<TElem>>
+        inline constexpr std::basic_string_view<TElem, TTraits> default_line_delimiter = new_line<TElem, TTraits>;
 #endif
+        // clang-format on
 
         template <typename TElem, typename TTraits = std::char_traits<TElem>>
         class basic_csv_parser final
@@ -136,8 +183,8 @@ namespace fastcsv
 
             FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR bool end_of_line()
             {
-                return columnStart_ == content_.size() || content_[columnEnd_] == '\n' || content_[columnEnd_] == '\r'
-                       || content_[columnEnd_] == '\r\n';
+                return columnStart_ == content_.size()
+                       || content_[columnEnd_] == new_line<TElem> || content_[columnEnd_] == caridge_return<TElem>;
             }
 
             FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR bool end_of_file() { return lineStart_ == content_.size(); }
@@ -174,10 +221,11 @@ namespace fastcsv
                     advance_column();
                 }
 
-                auto advanceChars = 1ul
-                                    + static_cast<size_t>(
-                                        content_[columnEnd_] == '\r' && columnEnd_ + 1ul < content_.size()
-                                        && content_[columnEnd_ + 1ul] == '\n');
+                auto advanceChars
+                    = 1ul
+                      + static_cast<size_t>(
+                          content_[columnEnd_] == caridge_return<TElem> && columnEnd_ + 1ul < content_.size()
+                          && content_[columnEnd_ + 1ul] == new_line<TElem>);
 
                 lineStart_ = columnStart_ = std::min(columnEnd_ + advanceChars, content_.size());
                 columnEnd_ = find_column_end(columnStart_);
@@ -233,12 +281,8 @@ namespace fastcsv
                         switch (current)
                         {
                         // line of end
-                        case '\n':
-                        case '\r':
-                        case '\r\n': return pos;
-
-                        // // safeguard for eof
-                        // case '\0': return pos;
+                        case new_line<TElem>:
+                        case caridge_return<TElem>: return pos;
 
                         // advance
                         default: current = content_[++pos];
@@ -248,11 +292,11 @@ namespace fastcsv
 
                 return pos;
             }
-
-            // FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR size_t get_line_end(size_t columnStart);
         };
 
-        using csv_parser = basic_csv_parser<char, std::char_traits<char>>;
+        using csv_parser = basic_csv_parser<char>;
+        using w_csv_parser = basic_csv_parser<wchar_t>;
+
 
         template <typename T, typename = void>
         inline constexpr bool has_from_chars_integral_v = false;
@@ -368,46 +412,54 @@ namespace fastcsv
         std::enable_if_t<
             std::is_same_v<decltype(std::declval<csv_headers<T>>()()), std::vector<std::string_view>>>> = true;
 
-    template <typename T, typename = void>
+    struct basic_from_csv;
+
+    template <typename T, typename = void, typename TElem = char, typename TTraits = std::char_traits<TElem>>
     struct from_csv;
 
-    struct csv_reader
+
+    template <typename TElem, typename TTraits = std::char_traits<TElem>>
+    struct basic_csv_reader
     {
-        detail::csv_parser & parser;
+        detail::basic_csv_parser<TElem, TTraits> & parser;
 
         template <typename TRead, typename... TArgs>
         FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR inline TRead read(TArgs &&... args) const
         {
-            if constexpr (std::is_same_v<from_csv<TRead>, decltype(*this)>)
+            if constexpr (std::is_same_v<from_csv<TRead, void, TElem, TTraits>, decltype(*this)>)
             {
                 throw fastcsv_exception(fmt::format("Recursive call  {} {}", __FILE__, __LINE__));
             }
 
-            return from_csv<TRead>{ parser }(std::forward<TArgs>()...);
+            return from_csv<TRead, void, TElem, TTraits>{ parser }(std::forward<TArgs>()...);
         }
 
         template <typename TRead, typename... TArgs>
         FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR inline std::optional<TRead> read_opt(TArgs &&... args) const
         {
-            if constexpr (std::is_same_v<from_csv<std::optional<TRead>>, decltype(*this)>)
+            if constexpr (std::is_same_v<from_csv<std::optional<TRead>, void, TElem, TTraits>, decltype(*this)>)
             {
                 throw fastcsv_exception(fmt::format("Recursive call  {} {}", __FILE__, __LINE__));
             }
 
-            return from_csv<std::optional<TRead>>{ parser }(std::forward<TArgs>(args)...);
+            return from_csv<std::optional<TRead>, void, TElem, TTraits>{ parser }(std::forward<TArgs>(args)...);
         }
     };
 
-    template <typename T>
-    struct from_csv<T, std::enable_if_t<detail::has_from_chars_integral_v<T>>> final : csv_reader
+    using csv_reader = basic_csv_reader<char>;
+
+
+    template <typename T, typename TElem, typename TTraits>
+    struct from_csv<T, std::enable_if_t<detail::has_from_chars_integral_v<T>>, TElem, TTraits> final
+      : basic_csv_reader<TElem, TTraits>
     {
         FASTCSV_NO_DISCARD inline T operator()(const int base = 10) const
         {
-            auto element = parser.consume_column();
+            auto element = this->parser.consume_column();
             return parse(element);
         }
 
-        FASTCSV_NO_DISCARD inline static T parse(std::string_view element, const int base = 10)
+        FASTCSV_NO_DISCARD inline static T parse(std::basic_string_view<TElem, TTraits> element, const int base = 10)
         {
 #if defined(FASTCSV_HAS_FROM_CHAR)
             T result;
@@ -440,17 +492,18 @@ namespace fastcsv
         }
     };
 
-    template <typename T>
-    struct from_csv<T, std::enable_if_t<detail::has_from_chars_floating_point_v<T>>> final : csv_reader
+    template <typename T, typename TElem, typename TTraits>
+    struct from_csv<T, std::enable_if_t<detail::has_from_chars_floating_point_v<T>>, TElem, TTraits> final
+      : basic_csv_reader<TElem, TTraits>
     {
         FASTCSV_NO_DISCARD inline T operator()(const std::chars_format fmt = std::chars_format::general) const
         {
-            auto element = parser.consume_column();
+            auto element = this->parser.consume_column();
             return parse(element, fmt);
         }
 
         FASTCSV_NO_DISCARD inline static T parse(
-            std::string_view element, const std::chars_format fmt = std::chars_format::general)
+            std::basic_string_view<TElem, TTraits> element, const std::chars_format fmt = std::chars_format::general)
         {
 #if defined(FASTCSV_HAS_FROM_CHAR)
             T result;
@@ -474,12 +527,12 @@ namespace fastcsv
         }
     };
 
-    template <>
-    struct from_csv<char> final : csv_reader
+    template <typename TElem, typename TTraits>
+    struct from_csv<char, void, TElem, TTraits> final : basic_csv_reader<TElem, TTraits>
     {
-        FASTCSV_NO_DISCARD inline char operator()() const
+        FASTCSV_NO_DISCARD inline TElem operator()() const
         {
-            auto value = parser.consume_column();
+            auto value = this->parser.consume_column();
             if (value.size() != 1ul)
             {
                 // ToDo:
@@ -490,24 +543,24 @@ namespace fastcsv
         }
     };
 
-    template <>
-    struct from_csv<std::string> final : csv_reader
+    template <typename TElem, typename TTraits>
+    struct from_csv<std::string, void, TElem, TTraits> final : basic_csv_reader<TElem, TTraits>
     {
-        FASTCSV_NO_DISCARD inline std::string operator()() const
+        FASTCSV_NO_DISCARD inline std::basic_string<TElem, TTraits> operator()() const
         {
-            auto value = parser.consume_column();
-            if (value.empty()) { return std::string(); }
+            auto value = this->parser.consume_column();
+            if (value.empty()) { return std::basic_string<TElem, TTraits>(); }
 
-            if (value.size() != 1ul && value[0] == detail::quote_char
-                && value[value.size() - 1ul] == detail::quote_char)
+            if (value.size() != 1ul
+                && value[0] == detail::quote<TElem> && value[value.size() - 1ul] == detail::quote<TElem>)
             {
-                std::stringstream ss;
+                std::basic_stringstream<TElem, TTraits> ss;
 
                 for (auto pos = 1ul; pos < value.size() - 1ul; ++pos)
                 {
-                    if (value[pos] == detail::escape_char && value[pos + 1ul] == detail::quote_char)
+                    if (value[pos] == detail::escape<TElem> && value[pos + 1ul] == detail::quote<TElem>)
                     {
-                        ss << detail::quote_char;
+                        ss << detail::quote<TElem>;
                         ++pos;
                     }
                     else
@@ -519,16 +572,16 @@ namespace fastcsv
                 return ss.str();
             }
 
-            return std::string(value);
+            return std::basic_string<TElem, TTraits>(value);
         }
     };
 
-    template <>
-    struct from_csv<bool> final : csv_reader
+    template <typename TElem, typename TTraits>
+    struct from_csv<bool, void, TElem, TTraits> final : basic_csv_reader<TElem, TTraits>
     {
         FASTCSV_NO_DISCARD inline bool operator()() const
         {
-            auto value = parser.consume_column();
+            auto value = this->parser.consume_column();
 
             if (value == "true" || value == "TRUE" || value == "True" || value == "t") { return true; }
             if (value == "false" || value == "FALSE" || value == "False" || value == "f") { return false; }
@@ -537,40 +590,42 @@ namespace fastcsv
         }
     };
 
-    template <typename T>
-    struct from_csv<std::optional<T>> final : csv_reader
+    template <typename T, typename TElem, typename TTraits>
+    struct from_csv<std::optional<T>, void, TElem, TTraits> final : basic_csv_reader<TElem, TTraits>
     {
         FASTCSV_NO_DISCARD inline std::optional<T> operator()() const
         {
-            if (parser.current_column_empty())
+            if (this->parser.current_column_empty())
             {
-                parser.advance_column();
+                this->parser.advance_column();
                 return std::nullopt;
             }
 
-            return from_csv<T>{ parser }();
+            return from_csv<T, void, TElem, TTraits>{ this->parser }();
         }
     };
 
 #if defined(FASTCSV_HAS_CXX20)
-    template <>
-    struct from_csv<std::chrono::year_month_day> final : csv_reader
+    template <typename TElem, typename TTraits>
+    struct from_csv<std::chrono::year_month_day, void, TElem, TTraits> final : basic_csv_reader<TElem, TTraits>
     {
         FASTCSV_NO_DISCARD inline std::chrono::year_month_day operator()() const
         {
-            auto element = parser.consume_column();
+            auto element = this->parser.consume_column();
 
             if (element.size() != 10ul) { throw fastcsv_exception(""); }
 
-            return std::chrono::year_month_day{ std::chrono::year(from_csv<int>::parse(element.substr(0ul, 4ul))),
-                                                std::chrono::month(from_csv<int>::parse(element.substr(5ul, 2ul))),
-                                                std::chrono::day(from_csv<int>::parse(element.substr(8ul, 2ul))) };
+            return std::chrono::year_month_day{
+                std::chrono::year(from_csv<int, void, TElem, TTraits>::parse(element.substr(0ul, 4ul))),
+                std::chrono::month(from_csv<int, void, TElem, TTraits>::parse(element.substr(5ul, 2ul))),
+                std::chrono::day(from_csv<int, void, TElem, TTraits>::parse(element.substr(8ul, 2ul)))
+            };
         }
     };
 #endif
 
     template <typename... Ts>
-    struct from_csv<std::tuple<Ts...>, void> final : csv_reader
+    struct from_csv<std::tuple<Ts...>, void, char> final : basic_csv_reader<char>
     {
         FASTCSV_NO_DISCARD inline std::tuple<Ts...> operator()() const { return apply<Ts...>(); }
 
@@ -588,107 +643,114 @@ namespace fastcsv
     };
 
 
-    template <typename T, typename = void>
+    template <typename T, typename = void, typename TElem = char, typename TTraits = std::char_traits<char>>
     struct to_csv;
 
-    struct csv_writer
+
+    template <typename TElem, typename TTraits = std::char_traits<TElem>>
+    struct basic_csv_writer
     {
-        std::ostream & stream;
+        std::basic_ostream<TElem, TTraits> & stream;
         bool first;
 
         template <typename TWrite, typename... TArgs>
         inline void write(const TWrite & value, TArgs &&... args)
         {
-            if constexpr (std::is_same_v<to_csv<TWrite>, decltype(*this)>)
+            if constexpr (std::is_same_v<to_csv<TWrite, void, TElem, TTraits>, decltype(*this)>)
             {
                 throw fastcsv_exception(fmt::format("Recursive call  {} {}", __FILE__, __LINE__));
             }
 
-            if (!first) { stream << detail::default_column_delimiter; }
+            if (!first) { stream << detail::default_column_delimiter<TElem>; }
 
-            to_csv<TWrite>{ stream, true }(value, std::forward<TArgs>(args)...);
+            to_csv<TWrite, void, TElem, TTraits>{ stream, true }(value, std::forward<TArgs>(args)...);
 
             first = false;
         }
     };
 
-    template <typename T>
+    using csv_writer = basic_csv_writer<char>;
+
+
+    template <typename T, typename TElem, typename TTraits>
     struct to_csv<
         T,
-        std::enable_if_t<detail::has_from_chars_integral_v<T> || detail::has_from_chars_floating_point_v<T>>>
-        final : csv_writer
+        std::enable_if_t<detail::has_from_chars_integral_v<T> || detail::has_from_chars_floating_point_v<T>>,
+        TElem,
+        TTraits>
+        final : basic_csv_writer<TElem, TTraits>
     {
-        inline void operator()(T value) { fmt::print(stream, "{}", value); }
-        inline void operator()(T value, std::string_view fmt) { fmt::print(stream, fmt, value); }
+        inline void operator()(T value) { fmt::print(this->stream, "{}", value); }
+        inline void operator()(T value, std::basic_string_view<TElem, TTraits> fmt) { fmt::print(this->stream, fmt, value); }
     };
 
-    template <>
-    struct to_csv<char> final : csv_writer
+    template <typename TElem, typename TTraits>
+    struct to_csv<char, void, TElem, TTraits> final : basic_csv_writer<TElem, TTraits>
     {
-        inline void operator()(char value) { stream << value; }
+        inline void operator()(char value) { this->stream << value; }
     };
 
-    template <>
-    struct to_csv<std::string> final : csv_writer
+    template <typename TElem, typename TTraits>
+    struct to_csv<std::basic_string<TElem, TTraits>, void, TElem, TTraits> final : basic_csv_writer<TElem, TTraits>
     {
-        inline void operator()(const std::string & value)
+        inline void operator()(const std::basic_string<TElem, TTraits> & value)
         {
-            auto hasComma = value.find(detail::default_column_delimiter) != std::string::npos;
-            auto quotePos = value.find(detail::quote_char);
+            auto hasComma = value.find(detail::default_column_delimiter<TElem>) != std::basic_string<TElem, TTraits>::npos;
+            auto quotePos = value.find(detail::quote<TElem>);
 
-            if (quotePos != std::string::npos)
+            if (quotePos != std::basic_string<TElem, TTraits>::npos)
             {
-                stream << detail::quote_char;
+                this->stream << detail::quote<TElem>;
 
                 size_t startPos = 0ul;
                 do
                 {
-                    stream << std::string_view(value.data() + startPos, quotePos - startPos) << detail::escape_char
-                           << detail::quote_char;
+                    this->stream << std::basic_string_view<TElem, TTraits>(value.data() + startPos, quotePos - startPos)
+                           << detail::escape<TElem> << detail::quote<TElem>;
 
                     startPos = quotePos + 1ul;
-                    quotePos = value.find(detail::quote_char, startPos);
+                    quotePos = value.find(detail::quote<TElem>, startPos);
                 }
-                while (quotePos != std::string::npos);
+                while (quotePos != std::basic_string<TElem, TTraits>::npos);
 
-                stream << std::string_view(value.data() + startPos, value.size() - startPos) << detail::quote_char;
+                this->stream << std::basic_string_view<TElem, TTraits>(value.data() + startPos, value.size() - startPos) << detail::quote<TElem>;
             }
             else if (hasComma)
             {
-                stream << detail::quote_char << value << detail::quote_char;
+                this->stream << detail::quote<TElem> << value << detail::quote<TElem>;
             }
             else
             {
-                stream << value;
+                this->stream << value;
             }
         }
     };
 
-    template <>
-    struct to_csv<bool> final : csv_writer
+    template <typename TElem, typename TTraits>
+    struct to_csv<bool, void, TElem, TTraits> final : basic_csv_writer<TElem, TTraits>
     {
-        inline void operator()(bool value) { fmt::print(stream, value ? "true" : "false"); }
+        inline void operator()(bool value) { fmt::print(this->stream, value ? "true" : "false"); }
     };
 
-    template <typename T>
-    struct to_csv<std::optional<T>> final : csv_writer
+    template <typename T, typename TElem, typename TTraits>
+    struct to_csv<std::optional<T>, void, TElem, TTraits> final : basic_csv_writer<TElem, TTraits>
     {
         inline void operator()(const std::optional<T> & value)
         {
             if (!value) { return; }
 
-            to_csv<T>{ stream, first }(*value);
+            to_csv<T, void, TElem, TTraits>{ this->stream, this->first }(*value);
         }
     };
 
 #if defined(FASTCSV_HAS_CXX20)
-    template <>
-    struct to_csv<std::chrono::year_month_day> final : csv_writer
+    template <typename TElem, typename TTraits>
+    struct to_csv<std::chrono::year_month_day, void, TElem, TTraits> final : basic_csv_writer<TElem, TTraits>
     {
         inline void operator()(std::chrono::year_month_day value)
         {
             fmt::print(
-                stream,
+                this->stream,
                 "{}-{}-{}",
                 value.year().operator int(),
                 value.month().operator unsigned int(),
@@ -761,8 +823,11 @@ namespace fastcsv
     {
         if (content.empty()) { return std::vector<T>(); }
 
-        auto parser
-            = detail::csv_parser(content, detail::default_column_delimiter, detail::quote_char, detail::escape_char);
+        auto parser = detail::csv_parser(
+            content,
+            detail::default_column_delimiter<char>,
+            detail::quote<char>,
+            detail::escape<char>);
         if (!noHeader.has_value()) { parser.advance_line(); }
 
         auto data = std::vector<T>();
@@ -797,11 +862,11 @@ namespace fastcsv
             throw fastcsv_exception(fmt::format("File does not exist: '{}'  {} {}", filePath, __FILE__, __LINE__));
         }
 
-        if (filePath.extension() != detail::csv_extension)
+        if (filePath.extension() != detail::csv_extension<char>)
         {
             throw fastcsv_exception(fmt::format(
                 "File does not have the required '.{}' extension: {}  {} {}",
-                detail::csv_extension,
+                detail::csv_extension<char>,
                 __FILE__,
                 __LINE__));
         }
@@ -851,11 +916,11 @@ namespace fastcsv
                 auto headers = csv_headers<TIntermediate>{}();
                 for (auto header : headers)
                 {
-                    if (!first) { os << detail::default_column_delimiter; }
+                    if (!first) { os << detail::default_column_delimiter<char>; }
                     os << header;
                     first = false;
                 }
-                os << detail::default_line_delimiter;
+                os << detail::default_line_delimiter<char>;
             }
         }
 
@@ -865,7 +930,7 @@ namespace fastcsv
         {
             writer.first = true;
             writer.write(adapter(value));
-            os << detail::default_line_delimiter;
+            os << detail::default_line_delimiter<char>;
         }
     }
 
@@ -915,11 +980,11 @@ namespace fastcsv
         TAdapter adapter,
         std::optional<detail::no_header_tag> noHeader = std::nullopt)
     {
-        if (filePath.extension() != detail::csv_extension)
+        if (filePath.extension() != detail::csv_extension<char>)
         {
             throw fastcsv_exception(fmt::format(
                 "File does not have the required '.{}' extension: {}  {} {}",
-                detail::csv_extension,
+                detail::csv_extension<char>,
                 __FILE__,
                 __LINE__));
         }
@@ -944,8 +1009,11 @@ namespace fastcsv
     {
         if (content.empty()) { return std::tuple<std::vector<Ts>...>(); }
 
-        auto parser
-            = detail::csv_parser(content, detail::default_column_delimiter, detail::quote_char, detail::escape_char);
+        auto parser = detail::csv_parser(
+            content,
+            detail::default_column_delimiter<char>,
+            detail::quote<char>,
+            detail::escape<char>);
         if (!noHeader.has_value()) { parser.advance_line(); }
 
         std::tuple<std::vector<Ts>...> data = [&]() {
@@ -979,15 +1047,15 @@ namespace fastcsv
             auto first = true;
             for (auto i = 0ul; i < std::min(headers.size(), sizeof...(Ts)); ++i)
             {
-                if (!first) { os << detail::default_column_delimiter; }
+                if (!first) { os << detail::default_column_delimiter<char>; }
                 os << headers[i];
                 first = false;
             }
             for (auto i = headers.size(); i < sizeof...(Ts); ++i)
             {
-                os << detail::default_column_delimiter;
+                os << detail::default_column_delimiter<char>;
             }
-            os << detail::default_line_delimiter;
+            os << detail::default_line_delimiter<char>;
         }
 
         // fold to get the minimal vector size: https://www.foonathan.net/2020/05/fold-tricks/
@@ -998,7 +1066,7 @@ namespace fastcsv
         {
             auto first = true;
             (detail::write_line(os, vectors, i, first), ...);
-            os << detail::default_line_delimiter;
+            os << detail::default_line_delimiter<char>;
         }
     }
 
@@ -1022,11 +1090,11 @@ namespace fastcsv
     template <typename... Ts>
     void save_csv_v(const std::filesystem::path & filePath, const std::vector<Ts> &... vectors)
     {
-        if (filePath.extension() != detail::csv_extension)
+        if (filePath.extension() != detail::csv_extension<char>)
         {
             throw fastcsv_exception(fmt::format(
                 "File does not have the required '.{}' extension: {}  {} {}",
-                detail::csv_extension,
+                detail::csv_extension<char>,
                 __FILE__,
                 __LINE__));
         }
@@ -1041,11 +1109,11 @@ namespace fastcsv
         const std::vector<std::string_view> & headers,
         const std::vector<Ts> &... vectors)
     {
-        if (filePath.extension() != detail::csv_extension)
+        if (filePath.extension() != detail::csv_extension<char>)
         {
             throw fastcsv_exception(fmt::format(
                 "File does not have the required '.{}' extension: {}  {} {}",
-                detail::csv_extension,
+                detail::csv_extension<char>,
                 __FILE__,
                 __LINE__));
         }

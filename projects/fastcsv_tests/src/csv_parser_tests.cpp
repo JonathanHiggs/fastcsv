@@ -14,7 +14,7 @@ namespace fastcsv::detail::tests
         // Arrange
         auto content = "1,2,3\n"sv;
 
-        auto parser = csv_parser(content, default_column_delimiter, quote_char, escape_char);
+        auto parser = csv_parser(content, default_column_delimiter<char>, quote<char>, escape<char>);
 
         // Helpers
         auto assertColumn = [](csv_parser& parser, std::string_view expected, bool isEndOfLine, bool isEndOfFile) {
@@ -45,7 +45,7 @@ namespace fastcsv::detail::tests
         // Arrange
         auto content = "1,2,3\n4,5,6\n"sv;
 
-        auto parser = csv_parser(content, default_column_delimiter, quote_char, escape_char);
+        auto parser = csv_parser(content, default_column_delimiter<char>, quote<char>, escape<char>);
 
         // Helpers
         auto assertColumn = [](csv_parser& parser, std::string_view expected, bool isEndOfLine, bool isEndOfFile) {
@@ -85,7 +85,7 @@ namespace fastcsv::detail::tests
         // Arrange
         auto content = "1,2,3\r4,5,6\r"sv;
 
-        auto parser = csv_parser(content, default_column_delimiter, quote_char, escape_char);
+        auto parser = csv_parser(content, default_column_delimiter<char>, quote<char>, escape<char>);
 
         // Helpers
         auto assertColumn = [](csv_parser& parser, std::string_view expected, bool isEndOfLine, bool isEndOfFile) {
@@ -125,7 +125,7 @@ namespace fastcsv::detail::tests
         // Arrange
         auto content = "1,2,3\r\n4,5,6\r\n"sv;
 
-        auto parser = csv_parser(content, default_column_delimiter, quote_char, escape_char);
+        auto parser = csv_parser(content, default_column_delimiter<char>, quote<char>, escape<char>);
 
         // Helpers
         auto assertColumn = [](csv_parser& parser, std::string_view expected, bool isEndOfLine, bool isEndOfFile) {
@@ -165,7 +165,7 @@ namespace fastcsv::detail::tests
         // Arrange
         auto content = "1,2,3\n"sv;
 
-        auto parser = csv_parser(content, default_column_delimiter, quote_char, escape_char);
+        auto parser = csv_parser(content, default_column_delimiter<char>, quote<char>, escape<char>);
 
         // Helpers
         auto assertColumn = [](csv_parser& parser, std::string_view expected, bool isEndOfLine, bool isEndOfFile) {
@@ -207,7 +207,7 @@ namespace fastcsv::detail::tests
         // Arrange
         auto content = "1,2,3\n4,5,6\n"sv;
 
-        auto parser = csv_parser(content, default_column_delimiter, quote_char, escape_char);
+        auto parser = csv_parser(content, default_column_delimiter<char>, quote<char>, escape<char>);
 
         // Helpers
         auto assertColumn = [](csv_parser& parser, std::string_view expected, bool isEndOfLine, bool isEndOfFile) {
@@ -239,7 +239,7 @@ namespace fastcsv::detail::tests
         // Arrange
         auto content = "\"one\",\"two\",\"three\"\n"sv;
 
-        auto parser = csv_parser(content, default_column_delimiter, quote_char, escape_char);
+        auto parser = csv_parser(content, default_column_delimiter<char>, quote<char>, escape<char>);
 
         // Helpers
         auto assertColumn = [](csv_parser& parser, std::string_view expected, bool isEndOfLine, bool isEndOfFile) {
@@ -270,7 +270,7 @@ namespace fastcsv::detail::tests
         // Arrange
         auto content = "\"\",\"\",\"\"\n"sv;
 
-        auto parser = csv_parser(content, default_column_delimiter, quote_char, escape_char);
+        auto parser = csv_parser(content, default_column_delimiter<char>, quote<char>, escape<char>);
 
         // Helpers
         auto assertColumn = [](csv_parser& parser, std::string_view expected, bool isEndOfLine, bool isEndOfFile) {
@@ -301,7 +301,7 @@ namespace fastcsv::detail::tests
         // Arrange
         auto content = "\"one,\",\",two\",\"th,ree\"\n"sv;
 
-        auto parser = csv_parser(content, default_column_delimiter, quote_char, escape_char);
+        auto parser = csv_parser(content, default_column_delimiter<char>, quote<char>, escape<char>);
 
         // Helpers
         auto assertColumn = [](csv_parser& parser, std::string_view expected, bool isEndOfLine, bool isEndOfFile) {
@@ -332,7 +332,7 @@ namespace fastcsv::detail::tests
         // Arrange
         auto content = "\"one\n\",\"\rtwo\",\"th\r\nree\"\n"sv;
 
-        auto parser = csv_parser(content, default_column_delimiter, quote_char, escape_char);
+        auto parser = csv_parser(content, default_column_delimiter<char>, quote<char>, escape<char>);
 
         // Helpers
         auto assertColumn = [](csv_parser& parser, std::string_view expected, bool isEndOfLine, bool isEndOfFile) {
@@ -363,7 +363,7 @@ namespace fastcsv::detail::tests
         // Arrange
         auto content = "s\"one\",\"two\"e,s\"three\"e,\"four\"a\"five\"\n"sv;
 
-        auto parser = csv_parser(content, default_column_delimiter, quote_char, escape_char);
+        auto parser = csv_parser(content, default_column_delimiter<char>, quote<char>, escape<char>);
 
         // Helpers
         auto assertColumn = [](csv_parser& parser, std::string_view expected, bool isEndOfLine, bool isEndOfFile) {
@@ -397,7 +397,7 @@ namespace fastcsv::detail::tests
         // Arrange
         auto content = "\"one\\\"\",\"\\\"two\",\"\\\"th\\\"ree\\\"\"\n"sv;
 
-        auto parser = csv_parser(content, default_column_delimiter, quote_char, escape_char);
+        auto parser = csv_parser(content, default_column_delimiter<char>, quote<char>, escape<char>);
 
         // Helpers
         auto assertColumn = [](csv_parser& parser, std::string_view expected, bool isEndOfLine, bool isEndOfFile) {
