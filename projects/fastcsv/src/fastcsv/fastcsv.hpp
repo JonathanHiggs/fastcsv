@@ -220,6 +220,148 @@ namespace fastcsv
 
         using csv_iterator = basic_csv_iterator<char, std::char_traits<char>>;
 
+        template <typename TElem, typename TTraits = std::char_traits<TElem>>
+        class basic_csv_parser final
+        {
+        private:
+            std::basic_string_view<TElem, TTraits> content_;
+            TElem columnDelimiter_;
+            TElem stringDelimiter_;
+            TElem escapeChar_;
+            size_t lineStart_;
+            size_t columnStart_;
+            size_t columnEnd_;
+
+        public:
+            FASTCSV_CONSTEXPR basic_csv_parser(
+                std::basic_string_view<TElem, TTraits> content,
+                TElem columnDelimiter,
+                TElem stringDelimiter,
+                TElem escapeChar) noexcept
+              : content_(content)
+              , columnDelimiter_(columnDelimiter)
+              , stringDelimiter_(stringDelimiter)
+              , escapeChar_(escapeChar)
+              , lineStart_(0ul)
+              , columnStart_(0ul)
+              , columnEnd_(find_column_end(columnStart_))
+            { }
+
+            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR bool end_of_line()
+            {
+                return columnStart_ == content_.size() || content_[columnEnd_] == '\n' || content_[columnEnd_] == '\r'
+                       || content_[columnEnd_] == '\r\n';
+            }
+
+            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR bool end_of_file() { return lineStart_ == content_.size(); }
+
+            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR size_t current_column_size() { return columnEnd_ - columnStart_; }
+
+            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR bool current_column_empty() { return current_column_size() == 0ul; }
+
+            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR std::basic_string_view<TElem, TTraits> current_column()
+            {
+                if (columnStart_ == content_.size()) { return std::basic_string_view<TElem, TTraits>(); }
+
+                return std::basic_string_view<TElem, TTraits>(
+                    content_.data() + columnStart_,
+                    columnEnd_ - columnStart_);
+            }
+
+            FASTCSV_CONSTEXPR void advance_column()
+            {
+                if (end_of_line())
+                {
+                    columnStart_ = columnEnd_;
+                    return;
+                }
+
+                columnStart_ = std::min(columnEnd_ + 1ul, content_.size());
+                columnEnd_ = find_column_end(columnStart_);
+            }
+
+            FASTCSV_CONSTEXPR void advance_line()
+            {
+                while (!end_of_line())
+                {
+                    advance_column();
+                }
+
+                lineStart_ = columnStart_ = std::min(columnEnd_ + 1ul, content_.size());
+                columnEnd_ = find_column_end(columnStart_);
+            }
+
+            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR std::basic_string_view<TElem, TTraits> consume_column()
+            {
+                auto value = current_column();
+                advance_column();
+                return value;
+            }
+
+        private:
+            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR size_t find_column_end(size_t pos)
+            {
+                if (pos >= content_.size()) { return content_.size(); }
+
+                auto current = content_[pos];
+
+                while (pos < content_.size())
+                {
+                    if (current == columnDelimiter_) { return pos; }
+
+                    else if (current == stringDelimiter_)
+                    {
+                        // quoted strings
+                        current = content_[++pos];
+                        bool stringFinished = false;
+
+                        while (!stringFinished && pos < content_.size())
+                        {
+                            if (current == stringDelimiter_)
+                            {
+                                // quoted string end
+                                current = content_[++pos];
+                                stringFinished = true;
+                            }
+                            else if (current == escapeChar_)
+                            {
+                                // advance two chars if next is an escaped quote
+                                pos += 1 + bool(content_[pos + 1ul] == stringDelimiter_);
+                                current = content_[pos];
+                            }
+                            else
+                            {
+                                // advance
+                                current = content_[++pos];
+                            }
+                        }
+                    }
+                    else
+                    {
+                        switch (current)
+                        {
+                        // line of end
+                        case '\n':
+                        case '\r':
+                        case '\r\n': return pos;
+
+                        // // safeguard for eof
+                        // case '\0': return pos;
+
+                        // advance
+                        default: current = content_[++pos];
+                        }
+                    }
+                }
+
+                return pos;
+            }
+
+            // FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR size_t get_line_end(size_t columnStart);
+        };
+
+        using csv_parser = basic_csv_parser<char, std::char_traits<char>>;
+
         template <typename T, typename = void>
         inline constexpr bool has_from_chars_integral_v = false;
 
