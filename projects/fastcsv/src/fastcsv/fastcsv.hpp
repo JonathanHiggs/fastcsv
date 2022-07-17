@@ -221,6 +221,12 @@ namespace fastcsv
                     advance_column();
                 }
 
+                if (columnStart_ == content_.size())
+                {
+                    lineStart_ = columnStart_ = columnEnd_ = content_.size();
+                    return;
+                }
+
                 auto advanceChars
                     = 1ul
                       + static_cast<size_t>(
