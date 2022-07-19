@@ -34,7 +34,10 @@ namespace fastcsv::detail::tests
         assertColumn(parser, L"2"sv, false, false);
 
         parser.advance_column();
-        assertColumn(parser, L"3"sv, true, false);
+        assertColumn(parser, L"3"sv, false, false);
+
+        parser.advance_column();
+        assertColumn(parser, L""sv, true, false);
 
         parser.advance_line(); // move to end of file
         assertColumn(parser, L""sv, true, true);
@@ -65,7 +68,10 @@ namespace fastcsv::detail::tests
         assertColumn(parser, L"2"sv, false, false);
 
         parser.advance_column();
-        assertColumn(parser, L"3"sv, true, false);
+        assertColumn(parser, L"3"sv, false, false);
+
+        parser.advance_column();
+        assertColumn(parser, L""sv, true, false);
 
         parser.advance_line(); // new line
         assertColumn(parser, L"4"sv, false, false);
@@ -74,7 +80,10 @@ namespace fastcsv::detail::tests
         assertColumn(parser, L"5"sv, false, false);
 
         parser.advance_column();
-        assertColumn(parser, L"6"sv, true, false);
+        assertColumn(parser, L"6"sv, false, false);
+
+        parser.advance_column();
+        assertColumn(parser, L""sv, true, false);
 
         parser.advance_line(); // move to end of file
         assertColumn(parser, L""sv, true, true);
@@ -105,7 +114,10 @@ namespace fastcsv::detail::tests
         assertColumn(parser, L"2"sv, false, false);
 
         parser.advance_column();
-        assertColumn(parser, L"3"sv, true, false);
+        assertColumn(parser, L"3"sv, false, false);
+
+        parser.advance_column();
+        assertColumn(parser, L""sv, true, false);
 
         parser.advance_line(); // new line
         assertColumn(parser, L"4"sv, false, false);
@@ -114,7 +126,10 @@ namespace fastcsv::detail::tests
         assertColumn(parser, L"5"sv, false, false);
 
         parser.advance_column();
-        assertColumn(parser, L"6"sv, true, false);
+        assertColumn(parser, L"6"sv, false, false);
+
+        parser.advance_column();
+        assertColumn(parser, L""sv, true, false);
 
         parser.advance_line(); // move to end of file
         assertColumn(parser, L""sv, true, true);
@@ -145,7 +160,10 @@ namespace fastcsv::detail::tests
         assertColumn(parser, L"2"sv, false, false);
 
         parser.advance_column();
-        assertColumn(parser, L"3"sv, true, false);
+        assertColumn(parser, L"3"sv, false, false);
+
+        parser.advance_column();
+        assertColumn(parser, L""sv, true, false);
 
         parser.advance_line(); // new line
         assertColumn(parser, L"4"sv, false, false);
@@ -154,7 +172,10 @@ namespace fastcsv::detail::tests
         assertColumn(parser, L"5"sv, false, false);
 
         parser.advance_column();
-        assertColumn(parser, L"6"sv, true, false);
+        assertColumn(parser, L"6"sv, false, false);
+
+        parser.advance_column();
+        assertColumn(parser, L""sv, true, false);
 
         parser.advance_line(); // move to end of file
         assertColumn(parser, L""sv, true, true);
@@ -186,7 +207,10 @@ namespace fastcsv::detail::tests
         assertColumn(parser, L"2"sv, false, false);
 
         parser.advance_column();
-        assertColumn(parser, L"3"sv, true, false);
+        assertColumn(parser, L"3"sv, false, false);
+
+        parser.advance_column();
+        assertColumn(parser, L""sv, true, false);
 
         parser.advance_column(); // advance to non-existent column
         assertColumn(parser, L""sv, true, false);
@@ -228,7 +252,10 @@ namespace fastcsv::detail::tests
         assertColumn(parser, L"5"sv, false, false);
 
         parser.advance_column();
-        assertColumn(parser, L"6"sv, true, false);
+        assertColumn(parser, L"6"sv, false, false);
+
+        parser.advance_column();
+        assertColumn(parser, L""sv, true, false);
 
         parser.advance_line(); // move to end of file
         assertColumn(parser, L""sv, true, true);
@@ -259,7 +286,10 @@ namespace fastcsv::detail::tests
         assertColumn(parser, L"\"two\""sv, false, false);
 
         parser.advance_column();
-        assertColumn(parser, L"\"three\""sv, true, false);
+        assertColumn(parser, L"\"three\""sv, false, false);
+
+        parser.advance_column();
+        assertColumn(parser, L""sv, true, false);
 
         parser.advance_line(); // move to end of file
         assertColumn(parser, L""sv, true, true);
@@ -290,7 +320,10 @@ namespace fastcsv::detail::tests
         assertColumn(parser, L"\"\""sv, false, false);
 
         parser.advance_column();
-        assertColumn(parser, L"\"\""sv, true, false);
+        assertColumn(parser, L"\"\""sv, false, false);
+
+        parser.advance_column();
+        assertColumn(parser, L""sv, true, false);
 
         parser.advance_line(); // move to end of file
         assertColumn(parser, L""sv, true, true);
@@ -321,7 +354,10 @@ namespace fastcsv::detail::tests
         assertColumn(parser, L"\",two\""sv, false, false);
 
         parser.advance_column();
-        assertColumn(parser, L"\"th,ree\""sv, true, false);
+        assertColumn(parser, L"\"th,ree\""sv, false, false);
+
+        parser.advance_column();
+        assertColumn(parser, L""sv, true, false);
 
         parser.advance_line(); // move to end of file
         assertColumn(parser, L""sv, true, true);
@@ -352,7 +388,10 @@ namespace fastcsv::detail::tests
         assertColumn(parser, L"\"\rtwo\""sv, false, false);
 
         parser.advance_column();
-        assertColumn(parser, L"\"th\r\nree\""sv, true, false);
+        assertColumn(parser, L"\"th\r\nree\""sv, false, false);
+
+        parser.advance_column();
+        assertColumn(parser, L""sv, true, false);
 
         parser.advance_line(); // move to end of file
         assertColumn(parser, L""sv, true, true);
@@ -386,7 +425,10 @@ namespace fastcsv::detail::tests
         assertColumn(parser, L"s\"three\"e"sv, false, false);
 
         parser.advance_column();
-        assertColumn(parser, L"\"four\"a\"five\""sv, true, false);
+        assertColumn(parser, L"\"four\"a\"five\""sv, false, false);
+
+        parser.advance_column();
+        assertColumn(parser, L""sv, true, false);
 
         parser.advance_line(); // move to end of file
         assertColumn(parser, L""sv, true, true);
@@ -417,7 +459,10 @@ namespace fastcsv::detail::tests
         assertColumn(parser, L"\"\\\"two\""sv, false, false);
 
         parser.advance_column();
-        assertColumn(parser, L"\"\\\"th\\\"ree\\\"\""sv, true, false);
+        assertColumn(parser, L"\"\\\"th\\\"ree\\\"\""sv, false, false);
+
+        parser.advance_column();
+        assertColumn(parser, L""sv, true, false);
 
         parser.advance_line(); // move to end of file
         assertColumn(parser, L""sv, true, true);

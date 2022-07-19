@@ -169,9 +169,9 @@ namespace fastcsv
         public:
             FASTCSV_CONSTEXPR basic_csv_parser(
                 std::basic_string_view<TElem, TTraits> content,
-                TElem columnDelimiter,
-                TElem stringDelimiter,
-                TElem escapeChar) noexcept
+                TElem columnDelimiter = default_column_delimiter<TElem>,
+                TElem stringDelimiter = quote<TElem>,
+                TElem escapeChar = escape<TElem>) noexcept
               : content_(content)
               , columnDelimiter_(columnDelimiter)
               , stringDelimiter_(stringDelimiter)
@@ -184,7 +184,7 @@ namespace fastcsv
             FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR bool end_of_line()
             {
                 return columnStart_ == content_.size()
-                       || content_[columnEnd_] == new_line<TElem> || content_[columnEnd_] == caridge_return<TElem>;
+                       || content_[columnStart_] == new_line<TElem> || content_[columnStart_] == caridge_return<TElem>;
             }
 
             FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR bool end_of_file() { return lineStart_ == content_.size(); }
@@ -202,29 +202,28 @@ namespace fastcsv
                     columnEnd_ - columnStart_);
             }
 
-            FASTCSV_CONSTEXPR void advance_column()
+            FASTCSV_CONSTEXPR bool advance_column()
             {
-                if (end_of_line())
+                if (columnEnd_ == content_.size()
+                    || content_[columnEnd_] == new_line<TElem> || content_[columnEnd_] == caridge_return<TElem>)
                 {
                     columnStart_ = columnEnd_;
-                    return;
+                    return false;
                 }
 
                 columnStart_ = std::min(columnEnd_ + 1ul, content_.size());
                 columnEnd_ = find_column_end(columnStart_);
+                return true;
             }
 
-            FASTCSV_CONSTEXPR void advance_line()
+            FASTCSV_CONSTEXPR bool advance_line()
             {
-                while (!end_of_line())
-                {
-                    advance_column();
-                }
+                while (advance_column()) { }
 
                 if (columnStart_ == content_.size())
                 {
                     lineStart_ = columnStart_ = columnEnd_ = content_.size();
-                    return;
+                    return false;
                 }
 
                 auto advanceChars
@@ -235,6 +234,8 @@ namespace fastcsv
 
                 lineStart_ = columnStart_ = std::min(columnEnd_ + advanceChars, content_.size());
                 columnEnd_ = find_column_end(columnStart_);
+
+                return true;
             }
 
             FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR std::basic_string_view<TElem, TTraits> consume_column()
@@ -255,10 +256,12 @@ namespace fastcsv
                 {
                     if (current == columnDelimiter_) { return pos; }
 
+                    // quoted strings
                     else if (current == stringDelimiter_)
                     {
-                        // quoted strings
-                        current = content_[++pos];
+                        ++pos;
+                        if (pos == content_.size()) { return pos; }
+                        current = content_[pos];
                         bool stringFinished = false;
 
                         while (!stringFinished && pos < content_.size())
@@ -266,20 +269,23 @@ namespace fastcsv
                             if (current == stringDelimiter_)
                             {
                                 // quoted string end
-                                current = content_[++pos];
+                                ++pos;
                                 stringFinished = true;
                             }
                             else if (current == escapeChar_)
                             {
                                 // advance two chars if next is an escaped quote
-                                pos += 1 + bool(content_[pos + 1ul] == stringDelimiter_);
+                                pos += 1 + bool(pos + 1ul < content_.size() && content_[pos + 1ul] == stringDelimiter_);
                                 current = content_[pos];
                             }
                             else
                             {
                                 // advance
-                                current = content_[++pos];
+                                ++pos;
                             }
+
+                            if (pos == content_.size()) { return pos; }
+                            current = content_[pos];
                         }
                     }
                     else
@@ -291,7 +297,12 @@ namespace fastcsv
                         case caridge_return<TElem>: return pos;
 
                         // advance
-                        default: current = content_[++pos];
+                        default: {
+                            ++pos;
+                            if (pos == content_.size()) { return pos; }
+                            current = content_[pos];
+                        }
+                        break;
                         }
                     }
                 }
@@ -687,7 +698,10 @@ namespace fastcsv
         final : basic_csv_writer<TElem, TTraits>
     {
         inline void operator()(T value) { fmt::print(this->stream, "{}", value); }
-        inline void operator()(T value, std::basic_string_view<TElem, TTraits> fmt) { fmt::print(this->stream, fmt, value); }
+        inline void operator()(T value, std::basic_string_view<TElem, TTraits> fmt)
+        {
+            fmt::print(this->stream, fmt, value);
+        }
     };
 
     template <typename TElem, typename TTraits>
@@ -701,7 +715,8 @@ namespace fastcsv
     {
         inline void operator()(const std::basic_string<TElem, TTraits> & value)
         {
-            auto hasComma = value.find(detail::default_column_delimiter<TElem>) != std::basic_string<TElem, TTraits>::npos;
+            auto hasComma
+                = value.find(detail::default_column_delimiter<TElem>) != std::basic_string<TElem, TTraits>::npos;
             auto quotePos = value.find(detail::quote<TElem>);
 
             if (quotePos != std::basic_string<TElem, TTraits>::npos)
@@ -712,14 +727,15 @@ namespace fastcsv
                 do
                 {
                     this->stream << std::basic_string_view<TElem, TTraits>(value.data() + startPos, quotePos - startPos)
-                           << detail::escape<TElem> << detail::quote<TElem>;
+                                 << detail::escape<TElem> << detail::quote<TElem>;
 
                     startPos = quotePos + 1ul;
                     quotePos = value.find(detail::quote<TElem>, startPos);
                 }
                 while (quotePos != std::basic_string<TElem, TTraits>::npos);
 
-                this->stream << std::basic_string_view<TElem, TTraits>(value.data() + startPos, value.size() - startPos) << detail::quote<TElem>;
+                this->stream << std::basic_string_view<TElem, TTraits>(value.data() + startPos, value.size() - startPos)
+                             << detail::quote<TElem>;
             }
             else if (hasComma)
             {
