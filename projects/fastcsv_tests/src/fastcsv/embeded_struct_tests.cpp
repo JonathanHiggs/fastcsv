@@ -1,4 +1,5 @@
 #include <fastcsv/fastcsv.hpp>
+#include <fastcsv/locator.hpp>
 
 #include <gtest/gtest.h>
 
@@ -66,6 +67,10 @@ namespace fastcsv
         }
     };
 
+}  // namespace fastcsv
+
+namespace fastcsv::tests
+{
 
     TEST(embeded_struct_tests, read)
     {
@@ -124,4 +129,22 @@ namespace fastcsv
         }
     }
 
-}  // namespace fastcsv
+    TEST(embeded_struct_tests, load_csv)
+    {
+        // Arrange
+        auto expected
+            = std::vector<composite>{ composite{ "a", embeded{ "one", 1 } }, composite{ "b", embeded{ "two", 2 } } };
+
+        // Act
+        auto result = load_csv<composite>(data_path() / "embeded-struct.csv", no_header);
+
+        // Assert
+        EXPECT_EQ(result.size(), expected.size());
+
+        for (auto i = 0ul; i < result.size(); ++i)
+        {
+            EXPECT_EQ(result[i], expected[i]);
+        }
+    }
+
+}  // namespace fastcsv::tests

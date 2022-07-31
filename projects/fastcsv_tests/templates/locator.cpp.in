@@ -1,0 +1,14 @@
+#include <fastcsv/locator.hpp>
+
+using namespace std::filesystem;
+
+
+namespace fastcsv::tests
+{
+
+    path data_path()
+    {
+        return absolute(path("${CMAKE_CURRENT_SOURCE_DIR}/data")).make_preferred();
+    }
+
+}

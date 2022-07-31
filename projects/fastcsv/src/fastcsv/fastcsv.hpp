@@ -1080,7 +1080,7 @@ namespace fastcsv
         const std::vector<T> & data,
         std::optional<detail::no_header_tag> noHeaderOption = std::nullopt)
     {
-        write_csv<T, T, detail::identity>(filePath, data, detail::identity{}, noHeaderOption);
+        save_csv<T, T, detail::identity>(filePath, data, detail::identity{}, noHeaderOption);
     }
 
 

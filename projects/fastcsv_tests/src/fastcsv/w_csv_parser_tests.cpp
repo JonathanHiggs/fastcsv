@@ -1,4 +1,5 @@
 #include <fastcsv/fastcsv.hpp>
+#include <fastcsv/locator.hpp>
 
 #include <gtest/gtest.h>
 
@@ -17,7 +18,7 @@ namespace fastcsv::detail::tests
         auto parser = w_csv_parser(content, default_column_delimiter<char>, quote<char>, escape<char>);
 
         // Helpers
-        auto assertColumn = [](w_csv_parser& parser, std::wstring_view expected, bool isEndOfLine, bool isEndOfFile) {
+        auto assertColumn = [](w_csv_parser & parser, std::wstring_view expected, bool isEndOfLine, bool isEndOfFile) {
             EXPECT_EQ(parser.end_of_line(), isEndOfLine);
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
@@ -39,7 +40,7 @@ namespace fastcsv::detail::tests
         parser.advance_column();
         assertColumn(parser, L""sv, true, false);
 
-        parser.advance_line(); // move to end of file
+        parser.advance_line();  // move to end of file
         assertColumn(parser, L""sv, true, true);
     }
 
@@ -51,7 +52,7 @@ namespace fastcsv::detail::tests
         auto parser = w_csv_parser(content, default_column_delimiter<char>, quote<char>, escape<char>);
 
         // Helpers
-        auto assertColumn = [](w_csv_parser& parser, std::wstring_view expected, bool isEndOfLine, bool isEndOfFile) {
+        auto assertColumn = [](w_csv_parser & parser, std::wstring_view expected, bool isEndOfLine, bool isEndOfFile) {
             EXPECT_EQ(parser.end_of_line(), isEndOfLine);
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
@@ -73,7 +74,7 @@ namespace fastcsv::detail::tests
         parser.advance_column();
         assertColumn(parser, L""sv, true, false);
 
-        parser.advance_line(); // new line
+        parser.advance_line();  // new line
         assertColumn(parser, L"4"sv, false, false);
 
         parser.advance_column();
@@ -85,7 +86,7 @@ namespace fastcsv::detail::tests
         parser.advance_column();
         assertColumn(parser, L""sv, true, false);
 
-        parser.advance_line(); // move to end of file
+        parser.advance_line();  // move to end of file
         assertColumn(parser, L""sv, true, true);
     }
 
@@ -97,7 +98,7 @@ namespace fastcsv::detail::tests
         auto parser = w_csv_parser(content, default_column_delimiter<char>, quote<char>, escape<char>);
 
         // Helpers
-        auto assertColumn = [](w_csv_parser& parser, std::wstring_view expected, bool isEndOfLine, bool isEndOfFile) {
+        auto assertColumn = [](w_csv_parser & parser, std::wstring_view expected, bool isEndOfLine, bool isEndOfFile) {
             EXPECT_EQ(parser.end_of_line(), isEndOfLine);
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
@@ -119,7 +120,7 @@ namespace fastcsv::detail::tests
         parser.advance_column();
         assertColumn(parser, L""sv, true, false);
 
-        parser.advance_line(); // new line
+        parser.advance_line();  // new line
         assertColumn(parser, L"4"sv, false, false);
 
         parser.advance_column();
@@ -131,7 +132,7 @@ namespace fastcsv::detail::tests
         parser.advance_column();
         assertColumn(parser, L""sv, true, false);
 
-        parser.advance_line(); // move to end of file
+        parser.advance_line();  // move to end of file
         assertColumn(parser, L""sv, true, true);
     }
 
@@ -143,7 +144,7 @@ namespace fastcsv::detail::tests
         auto parser = w_csv_parser(content, default_column_delimiter<char>, quote<char>, escape<char>);
 
         // Helpers
-        auto assertColumn = [](w_csv_parser& parser, std::wstring_view expected, bool isEndOfLine, bool isEndOfFile) {
+        auto assertColumn = [](w_csv_parser & parser, std::wstring_view expected, bool isEndOfLine, bool isEndOfFile) {
             EXPECT_EQ(parser.end_of_line(), isEndOfLine);
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
@@ -165,7 +166,7 @@ namespace fastcsv::detail::tests
         parser.advance_column();
         assertColumn(parser, L""sv, true, false);
 
-        parser.advance_line(); // new line
+        parser.advance_line();  // new line
         assertColumn(parser, L"4"sv, false, false);
 
         parser.advance_column();
@@ -177,7 +178,7 @@ namespace fastcsv::detail::tests
         parser.advance_column();
         assertColumn(parser, L""sv, true, false);
 
-        parser.advance_line(); // move to end of file
+        parser.advance_line();  // move to end of file
         assertColumn(parser, L""sv, true, true);
     }
 
@@ -189,7 +190,7 @@ namespace fastcsv::detail::tests
         auto parser = w_csv_parser(content, default_column_delimiter<char>, quote<char>, escape<char>);
 
         // Helpers
-        auto assertColumn = [](w_csv_parser& parser, std::wstring_view expected, bool isEndOfLine, bool isEndOfFile) {
+        auto assertColumn = [](w_csv_parser & parser, std::wstring_view expected, bool isEndOfLine, bool isEndOfFile) {
             EXPECT_EQ(parser.end_of_line(), isEndOfLine);
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
@@ -212,17 +213,17 @@ namespace fastcsv::detail::tests
         parser.advance_column();
         assertColumn(parser, L""sv, true, false);
 
-        parser.advance_column(); // advance to non-existent column
+        parser.advance_column();  // advance to non-existent column
         assertColumn(parser, L""sv, true, false);
 
-        parser.advance_column(); // advance to non-existent column again
+        parser.advance_column();  // advance to non-existent column again
         assertColumn(parser, L""sv, true, false);
 
         // End
-        parser.advance_line(); // move to end of file
+        parser.advance_line();  // move to end of file
         assertColumn(parser, L""sv, true, true);
 
-        parser.advance_column(); // move to end of file again
+        parser.advance_column();  // move to end of file again
         assertColumn(parser, L""sv, true, true);
     }
 
@@ -234,7 +235,7 @@ namespace fastcsv::detail::tests
         auto parser = w_csv_parser(content, default_column_delimiter<char>, quote<char>, escape<char>);
 
         // Helpers
-        auto assertColumn = [](w_csv_parser& parser, std::wstring_view expected, bool isEndOfLine, bool isEndOfFile) {
+        auto assertColumn = [](w_csv_parser & parser, std::wstring_view expected, bool isEndOfLine, bool isEndOfFile) {
             EXPECT_EQ(parser.end_of_line(), isEndOfLine);
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
@@ -245,7 +246,7 @@ namespace fastcsv::detail::tests
         };
 
         // Act & Assert
-        parser.advance_line(); // skip row
+        parser.advance_line();  // skip row
         assertColumn(parser, L"4"sv, false, false);
 
         parser.advance_column();
@@ -257,7 +258,7 @@ namespace fastcsv::detail::tests
         parser.advance_column();
         assertColumn(parser, L""sv, true, false);
 
-        parser.advance_line(); // move to end of file
+        parser.advance_line();  // move to end of file
         assertColumn(parser, L""sv, true, true);
     }
 
@@ -269,7 +270,7 @@ namespace fastcsv::detail::tests
         auto parser = w_csv_parser(content, default_column_delimiter<char>, quote<char>, escape<char>);
 
         // Helpers
-        auto assertColumn = [](w_csv_parser& parser, std::wstring_view expected, bool isEndOfLine, bool isEndOfFile) {
+        auto assertColumn = [](w_csv_parser & parser, std::wstring_view expected, bool isEndOfLine, bool isEndOfFile) {
             EXPECT_EQ(parser.end_of_line(), isEndOfLine);
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
@@ -291,7 +292,7 @@ namespace fastcsv::detail::tests
         parser.advance_column();
         assertColumn(parser, L""sv, true, false);
 
-        parser.advance_line(); // move to end of file
+        parser.advance_line();  // move to end of file
         assertColumn(parser, L""sv, true, true);
     }
 
@@ -303,7 +304,7 @@ namespace fastcsv::detail::tests
         auto parser = w_csv_parser(content, default_column_delimiter<char>, quote<char>, escape<char>);
 
         // Helpers
-        auto assertColumn = [](w_csv_parser& parser, std::wstring_view expected, bool isEndOfLine, bool isEndOfFile) {
+        auto assertColumn = [](w_csv_parser & parser, std::wstring_view expected, bool isEndOfLine, bool isEndOfFile) {
             EXPECT_EQ(parser.end_of_line(), isEndOfLine);
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
@@ -325,7 +326,7 @@ namespace fastcsv::detail::tests
         parser.advance_column();
         assertColumn(parser, L""sv, true, false);
 
-        parser.advance_line(); // move to end of file
+        parser.advance_line();  // move to end of file
         assertColumn(parser, L""sv, true, true);
     }
 
@@ -337,7 +338,7 @@ namespace fastcsv::detail::tests
         auto parser = w_csv_parser(content, default_column_delimiter<char>, quote<char>, escape<char>);
 
         // Helpers
-        auto assertColumn = [](w_csv_parser& parser, std::wstring_view expected, bool isEndOfLine, bool isEndOfFile) {
+        auto assertColumn = [](w_csv_parser & parser, std::wstring_view expected, bool isEndOfLine, bool isEndOfFile) {
             EXPECT_EQ(parser.end_of_line(), isEndOfLine);
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
@@ -359,7 +360,7 @@ namespace fastcsv::detail::tests
         parser.advance_column();
         assertColumn(parser, L""sv, true, false);
 
-        parser.advance_line(); // move to end of file
+        parser.advance_line();  // move to end of file
         assertColumn(parser, L""sv, true, true);
     }
 
@@ -371,7 +372,7 @@ namespace fastcsv::detail::tests
         auto parser = w_csv_parser(content, default_column_delimiter<char>, quote<char>, escape<char>);
 
         // Helpers
-        auto assertColumn = [](w_csv_parser& parser, std::wstring_view expected, bool isEndOfLine, bool isEndOfFile) {
+        auto assertColumn = [](w_csv_parser & parser, std::wstring_view expected, bool isEndOfLine, bool isEndOfFile) {
             EXPECT_EQ(parser.end_of_line(), isEndOfLine);
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
@@ -393,7 +394,7 @@ namespace fastcsv::detail::tests
         parser.advance_column();
         assertColumn(parser, L""sv, true, false);
 
-        parser.advance_line(); // move to end of file
+        parser.advance_line();  // move to end of file
         assertColumn(parser, L""sv, true, true);
     }
 
@@ -405,7 +406,7 @@ namespace fastcsv::detail::tests
         auto parser = w_csv_parser(content, default_column_delimiter<char>, quote<char>, escape<char>);
 
         // Helpers
-        auto assertColumn = [](w_csv_parser& parser, std::wstring_view expected, bool isEndOfLine, bool isEndOfFile) {
+        auto assertColumn = [](w_csv_parser & parser, std::wstring_view expected, bool isEndOfLine, bool isEndOfFile) {
             EXPECT_EQ(parser.end_of_line(), isEndOfLine);
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
@@ -430,7 +431,7 @@ namespace fastcsv::detail::tests
         parser.advance_column();
         assertColumn(parser, L""sv, true, false);
 
-        parser.advance_line(); // move to end of file
+        parser.advance_line();  // move to end of file
         assertColumn(parser, L""sv, true, true);
     }
 
@@ -442,7 +443,7 @@ namespace fastcsv::detail::tests
         auto parser = w_csv_parser(content, default_column_delimiter<char>, quote<char>, escape<char>);
 
         // Helpers
-        auto assertColumn = [](w_csv_parser& parser, std::wstring_view expected, bool isEndOfLine, bool isEndOfFile) {
+        auto assertColumn = [](w_csv_parser & parser, std::wstring_view expected, bool isEndOfLine, bool isEndOfFile) {
             EXPECT_EQ(parser.end_of_line(), isEndOfLine);
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
@@ -464,8 +465,8 @@ namespace fastcsv::detail::tests
         parser.advance_column();
         assertColumn(parser, L""sv, true, false);
 
-        parser.advance_line(); // move to end of file
+        parser.advance_line();  // move to end of file
         assertColumn(parser, L""sv, true, true);
     }
 
-}
+}  // namespace fastcsv::detail::tests

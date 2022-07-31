@@ -1,4 +1,5 @@
 #include <fastcsv/fastcsv.hpp>
+#include <fastcsv/locator.hpp>
 
 #include <gtest/gtest.h>
 
@@ -47,6 +48,10 @@ namespace fastcsv
         }
     };
 
+}  // namespace fastcsv
+
+namespace fastcsv::tests
+{
 
     TEST(headers_tests, has_csv_headers_is_true)
     {
@@ -146,4 +151,38 @@ namespace fastcsv
         }
     }
 
-}  // namespace fastcsv
+    TEST(headers_tests, load_csv)
+    {
+        // Arrange
+        auto expected = std::vector<headers>{ headers{ 1, "two" }, headers{ 3, "four" } };
+
+        // Act
+        auto result = load_csv<headers>(data_path() / "no-headers.csv", no_header);
+
+        // Assert
+        EXPECT_EQ(result.size(), expected.size());
+
+        for (auto i = 0ul; i < result.size(); ++i)
+        {
+            EXPECT_EQ(result[i], expected[i]);
+        }
+    }
+
+    TEST(headers_tests, load_csv_headers)
+    {
+        // Arrange
+        auto expected = std::vector<headers>{ headers{ 1, "two" }, headers{ 3, "four" } };
+
+        // Act
+        auto result = load_csv<headers>(data_path() / "headers.csv");
+
+        // Assert
+        EXPECT_EQ(result.size(), expected.size());
+
+        for (auto i = 0ul; i < result.size(); ++i)
+        {
+            EXPECT_EQ(result[i], expected[i]);
+        }
+    }
+
+}  // namespace fastcsv::tests

@@ -1,4 +1,5 @@
 #include <fastcsv/fastcsv.hpp>
+#include <fastcsv/locator.hpp>
 
 #include <gtest/gtest.h>
 
@@ -60,6 +61,11 @@ namespace fastcsv
                                          : std::variant<int, std::string>(*value.optString) };
         }
     };
+
+}  // namespace fastcsv
+
+namespace fastcsv::tests
+{
 
     TEST(adapter_tests, is_adapter)
     {
@@ -172,4 +178,23 @@ namespace fastcsv
         }
     }
 
-}  // namespace fastcsv
+    TEST(adapter_tests, load_csv)
+    {
+        // Arrange
+        auto path = data_path() / "tilemap.csv";
+
+        auto adapter = [](std::array<int, 32ul> const & value) -> std::vector<int> {
+            auto result = std::vector<int>();
+            result.reserve(32ul);
+            std::copy(value.begin(), value.end(), std::back_inserter(result));
+            return result;
+        };
+
+        // Act
+        auto result = load_csv<std::vector<int>, std::array<int, 32ul>>(path, adapter, no_header);
+
+        // Assert
+        EXPECT_EQ(result.size(), 24ul);
+    }
+
+}  // namespace fastcsv::tests

@@ -1,4 +1,5 @@
 #include <fastcsv/fastcsv.hpp>
+#include <fastcsv/locator.hpp>
 
 #include <gtest/gtest.h>
 
@@ -7,8 +8,10 @@ namespace fastcsv::tests
 {
     namespace
     {
-        struct Unmapped {};
-    }
+        struct Unmapped
+        {
+        };
+    }  // namespace
 
     TEST(csv_traits_tests, has_from_csv)
     {

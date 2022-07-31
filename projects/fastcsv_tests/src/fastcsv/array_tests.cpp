@@ -1,4 +1,5 @@
 #include <fastcsv/fastcsv.hpp>
+#include <fastcsv/locator.hpp>
 
 #include <gtest/gtest.h>
 
@@ -57,6 +58,23 @@ namespace fastcsv::tests
         // Act
         auto csvString = write_csv(expected);
         auto result = read_csv<std::array<int, 4ul>>(csvString, no_header);
+
+        // Assert
+        EXPECT_EQ(result.size(), expected.size());
+
+        for (auto i = 0ul; i < result.size(); ++i)
+        {
+            EXPECT_EQ(result[i], expected[i]);
+        }
+    }
+
+    TEST(array_tests, load_csv)
+    {
+        // Arrange
+        auto expected = std::vector{ std::array<int, 4ul>{ 1, 2, 3, 4 }, std::array<int, 4ul>{ 5, 6, 7, 8 } };
+
+        // Act
+        auto result = load_csv<std::array<int, 4ul>>(data_path() / "array.csv", no_header);
 
         // Assert
         EXPECT_EQ(result.size(), expected.size());

@@ -1,11 +1,12 @@
 #include <fastcsv/fastcsv.hpp>
+#include <fastcsv/locator.hpp>
 
 #include <gtest/gtest.h>
 
 using namespace std::string_literals;
 
 
-namespace fastcsv
+namespace fastcsv::tests
 {
 
     TEST(string_tests, read_simple_string)
@@ -89,4 +90,4 @@ namespace fastcsv
         EXPECT_EQ(result[0], "\"some string\""s);
     }
 
-}  // namespace fastcsv
+}  // namespace fastcsv::tests

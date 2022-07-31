@@ -6,6 +6,13 @@ file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
 )
 
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/templates/locator.cpp.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/locator.cpp"
+)
+
+list(APPEND SOURCE_FILES "${CMAKE_CURRENT_BINARY_DIR}/locator.cpp")
+
 target_sources(fastcsv_tests PRIVATE ${SOURCE_FILES})
 
 if (MSVC)

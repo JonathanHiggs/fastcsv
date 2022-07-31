@@ -1,11 +1,12 @@
 #include <fastcsv/fastcsv.hpp>
+#include <fastcsv/locator.hpp>
 
 #include <gtest/gtest.h>
 
 using namespace std::string_literals;
 
 
-namespace fastcsv
+namespace fastcsv::tests
 {
 
     TEST(tuple_tests, read)
@@ -121,4 +122,4 @@ namespace fastcsv
         }
     }
 
-}  // namespace fastcsv
+}  // namespace fastcsv::tests

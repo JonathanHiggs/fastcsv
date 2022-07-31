@@ -1,4 +1,5 @@
 #include <fastcsv/fastcsv.hpp>
+#include <fastcsv/locator.hpp>
 
 #include <gtest/gtest.h>
 
@@ -37,6 +38,10 @@ namespace fastcsv
         }
     };
 
+}  // namespace fastcsv
+
+namespace fastcsv::tests
+{
 
     TEST(simple_tests, read)
     {
@@ -92,4 +97,4 @@ namespace fastcsv
         }
     }
 
-}  // namespace fastcsv
+}  // namespace fastcsv::tests

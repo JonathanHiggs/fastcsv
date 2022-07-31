@@ -1,4 +1,5 @@
 #include <fastcsv/fastcsv.hpp>
+#include <fastcsv/locator.hpp>
 
 #include <gtest/gtest.h>
 
@@ -6,7 +7,7 @@ using namespace std::string_literals;
 using namespace std::string_view_literals;
 
 
-namespace fastcsv
+namespace fastcsv::tests
 {
 
     TEST(variadic_columns_tests, read)
@@ -168,4 +169,4 @@ namespace fastcsv
         }
     }
 
-}  // namespace fastcsv
+}  // namespace fastcsv::tests

@@ -1,11 +1,12 @@
 #include <fastcsv/fastcsv.hpp>
+#include <fastcsv/locator.hpp>
 
 #include <gtest/gtest.h>
 
 using namespace std::string_literals;
 
 
-namespace fastcsv
+namespace fastcsv::tests
 {
 
     TEST(bool_tests, read_true)
@@ -78,4 +79,21 @@ namespace fastcsv
         }
     }
 
-}  // namespace fastcsv
+    TEST(bool_tests, load_csv)
+    {
+        // Arrange
+        auto expected = std::vector<bool>{ true, false };
+
+        // Act
+        auto result = load_csv<bool>(data_path() / "bool.csv", no_header);
+
+        // Assert
+        EXPECT_EQ(result.size(), expected.size());
+
+        for (auto i = 0ul; i < result.size(); ++i)
+        {
+            EXPECT_EQ(result[i], expected[i]);
+        }
+    }
+
+}  // namespace fastcsv::tests

@@ -1,4 +1,5 @@
 #include <fastcsv/fastcsv.hpp>
+#include <fastcsv/locator.hpp>
 
 #include <gtest/gtest.h>
 
@@ -75,6 +76,10 @@ namespace fastcsv
         }
     };
 
+}  // namespace fastcsv
+
+namespace fastcsv::tests
+{
 
     TEST(all_primatives_tests, read)
     {
@@ -181,4 +186,37 @@ namespace fastcsv
         }
     }
 
-}  // namespace fastcsv
+    TEST(all_primatives_tests, load_csv)
+    {
+        // Arrange
+        auto expected = std::vector<all_primatives>{ all_primatives{
+            true,                     // bool
+            -118,                     // char
+            241,                      // unsigned char
+            -32668,                   // short
+            63535,                    // unsigned short
+            -2037483647,              // int
+            4284967295u,              // unsigned int
+            -2136483647l,             // long
+            4284967295u,              // unsigned
+            4294937295ul,             // unsigned long
+            -9223371036254775807ll,   // long long
+            18446744072705551615ull,  // unsigned long long
+            3.1415927f,               // float
+            2.718281828459045,        // double
+            2.718281828459045         // long double
+        } };
+
+        // Act
+        auto result = load_csv<all_primatives>(data_path() / "all-primatives.csv", no_header);
+
+        // Assert
+        EXPECT_EQ(result.size(), expected.size());
+
+        for (auto i = 0ul; i < result.size(); ++i)
+        {
+            EXPECT_EQ(result[i], expected[i]);
+        }
+    }
+
+}  // namespace fastcsv::tests
