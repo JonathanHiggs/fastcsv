@@ -92,6 +92,37 @@
 namespace fastcsv
 {
 
+    template <typename T, typename = void, typename TElem = char, typename TTraits = std::char_traits<TElem>>
+    struct from_csv;
+
+    template <typename T, typename = void, typename TElem = char, typename TTraits = std::char_traits<char>>
+    struct to_csv;
+
+    template <typename T>
+    struct csv_headers;
+
+    template <typename T, typename = void>
+    inline constexpr bool has_from_csv = false;
+
+    template <typename T>
+    inline constexpr bool has_from_csv<T, decltype(void(sizeof(from_csv<T>)))> = true;
+
+    template <typename T, typename = void>
+    inline constexpr bool has_to_csv = false;
+
+    template <typename T>
+    inline constexpr bool has_to_csv<T, decltype(void(sizeof(to_csv<T>)))> = true;
+
+    template <typename T, typename = void>
+    inline constexpr bool has_csv_headers = false;
+
+    template <typename T>
+    inline constexpr bool has_csv_headers<
+        T,
+        std::enable_if_t<
+            std::is_same_v<decltype(std::declval<csv_headers<T>>()()), std::vector<std::string_view>>>> = true;
+
+
     namespace detail
     {
 
@@ -417,24 +448,6 @@ namespace fastcsv
         const char * what() const noexcept override { return what_.c_str(); }
     };
 
-    template <typename T>
-    struct csv_headers;
-
-    template <typename T, typename = void>
-    inline constexpr bool has_csv_headers = false;
-
-    template <typename T>
-    inline constexpr bool has_csv_headers<
-        T,
-        std::enable_if_t<
-            std::is_same_v<decltype(std::declval<csv_headers<T>>()()), std::vector<std::string_view>>>> = true;
-
-    struct basic_from_csv;
-
-    template <typename T, typename = void, typename TElem = char, typename TTraits = std::char_traits<TElem>>
-    struct from_csv;
-
-
     template <typename TElem, typename TTraits = std::char_traits<TElem>>
     struct basic_csv_reader
     {
@@ -659,11 +672,6 @@ namespace fastcsv
         }
     };
 
-
-    template <typename T, typename = void, typename TElem = char, typename TTraits = std::char_traits<char>>
-    struct to_csv;
-
-
     template <typename TElem, typename TTraits = std::char_traits<TElem>>
     struct basic_csv_writer
     {
@@ -687,7 +695,6 @@ namespace fastcsv
     };
 
     using csv_writer = basic_csv_writer<char>;
-
 
     template <typename T, typename TElem, typename TTraits>
     struct to_csv<
