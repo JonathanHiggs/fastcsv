@@ -71,6 +71,7 @@
 #include <fmt/ostream.h>
 #include <fmt/printf.h>
 
+#include <array>
 #if defined(FASTCSV_HAS_FROM_CHAR)
     #include <charconv>
 #endif
@@ -672,6 +673,20 @@ namespace fastcsv
         }
     };
 
+    template <typename T, size_t N, typename TElem, typename TTraits>
+    struct from_csv<std::array<T, N>, void, TElem, TTraits> final : basic_csv_reader<TElem, TTraits>
+    {
+        FASTCSV_NO_DISCARD inline std::array<T, N> operator()() const
+        {
+            auto result = std::array<T, N>{};
+            for (auto i = 0ul; i < N; ++i)
+            {
+                result[i] = this->read<T>();
+            }
+            return result;
+        }
+    };
+
     template <typename TElem, typename TTraits = std::char_traits<TElem>>
     struct basic_csv_writer
     {
@@ -802,6 +817,18 @@ namespace fastcsv
             {
                 write(std::get<I>(value));
                 apply<I + 1u, Ts...>(value);
+            }
+        }
+    };
+
+    template <typename T, size_t N, typename TElem, typename TTraits>
+    struct to_csv<std::array<T, N>, void, TElem, TTraits> final : basic_csv_writer<TElem, TTraits>
+    {
+        inline void operator()(const std::array<T, N>& value)
+        {
+            for (auto i = 0ul; i < N; ++i)
+            {
+                this->write<T>(value[i]);
             }
         }
     };
