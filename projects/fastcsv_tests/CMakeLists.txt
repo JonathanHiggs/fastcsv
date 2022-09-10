@@ -21,10 +21,6 @@ if (MSVC)
         "/FC"                           # display full path in diagnostics
         "/WX"                           # warnings as errors
         "/W4"                           # warning level [0,4]
-        "/wd4099"                       # exclude: type first seen using #
-        "/wd4100"                       # exclude: unreferenced parameter
-        "/wd4201"                       # exclude: nameless struct/union
-        "/wd4834"                       # exclude: discarding a nodiscard value
         "$<$<CONFIG:DEBUG>:/Oi>"        # replace calls with intrinsics
         "$<$<CONFIG:DEBUG>:/Zi>"        # generate complete debug info
         "$<$<CONFIG:DEBUG>:/JMC>"       # just my code
@@ -32,7 +28,7 @@ if (MSVC)
     )
 else()
     target_compile_options(fastcsv_tests PRIVATE
-        "-std=c++2a"
+        "-std=c++20"
         "-Wall"
         "-Wextra"
         "-pedantic"

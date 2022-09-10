@@ -23,7 +23,7 @@ namespace fastcsv::detail::tests
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
             EXPECT_EQ(parser.current_column_size(), expected.size());
-            EXPECT_EQ(parser.current_column_empty(), expected.size() == 0ul);
+            EXPECT_EQ(parser.current_column_empty(), expected.empty());
 
             EXPECT_EQ(parser.current_column(), expected);
         };
@@ -54,7 +54,7 @@ namespace fastcsv::detail::tests
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
             EXPECT_EQ(parser.current_column_size(), expected.size());
-            EXPECT_EQ(parser.current_column_empty(), expected.size() == 0ul);
+            EXPECT_EQ(parser.current_column_empty(), expected.empty());
 
             EXPECT_EQ(parser.current_column(), expected);
         };
@@ -85,7 +85,7 @@ namespace fastcsv::detail::tests
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
             EXPECT_EQ(parser.current_column_size(), expected.size());
-            EXPECT_EQ(parser.current_column_empty(), expected.size() == 0ul);
+            EXPECT_EQ(parser.current_column_empty(), expected.empty());
 
             EXPECT_EQ(parser.current_column(), expected);
         };
@@ -131,7 +131,7 @@ namespace fastcsv::detail::tests
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
             EXPECT_EQ(parser.current_column_size(), expected.size());
-            EXPECT_EQ(parser.current_column_empty(), expected.size() == 0ul);
+            EXPECT_EQ(parser.current_column_empty(), expected.empty());
 
             EXPECT_EQ(parser.current_column(), expected);
         };
@@ -177,7 +177,7 @@ namespace fastcsv::detail::tests
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
             EXPECT_EQ(parser.current_column_size(), expected.size());
-            EXPECT_EQ(parser.current_column_empty(), expected.size() == 0ul);
+            EXPECT_EQ(parser.current_column_empty(), expected.empty());
 
             EXPECT_EQ(parser.current_column(), expected);
         };
@@ -223,7 +223,7 @@ namespace fastcsv::detail::tests
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
             EXPECT_EQ(parser.current_column_size(), expected.size());
-            EXPECT_EQ(parser.current_column_empty(), expected.size() == 0ul);
+            EXPECT_EQ(parser.current_column_empty(), expected.empty());
 
             EXPECT_EQ(parser.current_column(), expected);
         };
@@ -265,7 +265,7 @@ namespace fastcsv::detail::tests
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
             EXPECT_EQ(parser.current_column_size(), expected.size());
-            EXPECT_EQ(parser.current_column_empty(), expected.size() == 0ul);
+            EXPECT_EQ(parser.current_column_empty(), expected.empty());
 
             EXPECT_EQ(parser.current_column(), expected);
         };
@@ -296,12 +296,11 @@ namespace fastcsv::detail::tests
 
         // Helpers
         auto assertColumn = [](csv_parser & parser, std::string_view expected, bool isEndOfLine, bool isEndOfFile) {
-            auto res = parser.end_of_line();
-            EXPECT_EQ(res, isEndOfLine);
+            EXPECT_EQ(parser.end_of_line(), isEndOfLine);
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
             EXPECT_EQ(parser.current_column_size(), expected.size());
-            EXPECT_EQ(parser.current_column_empty(), expected.size() == 0ul);
+            EXPECT_EQ(parser.current_column_empty(), expected.empty());
 
             EXPECT_EQ(parser.current_column(), expected);
         };
@@ -350,7 +349,7 @@ namespace fastcsv::detail::tests
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
             EXPECT_EQ(parser.current_column_size(), expected.size());
-            EXPECT_EQ(parser.current_column_empty(), expected.size() == 0ul);
+            EXPECT_EQ(parser.current_column_empty(), expected.empty());
 
             EXPECT_EQ(parser.current_column(), expected);
         };
@@ -384,7 +383,7 @@ namespace fastcsv::detail::tests
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
             EXPECT_EQ(parser.current_column_size(), expected.size());
-            EXPECT_EQ(parser.current_column_empty(), expected.size() == 0ul);
+            EXPECT_EQ(parser.current_column_empty(), expected.empty());
 
             EXPECT_EQ(parser.current_column(), expected);
         };
@@ -418,7 +417,7 @@ namespace fastcsv::detail::tests
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
             EXPECT_EQ(parser.current_column_size(), expected.size());
-            EXPECT_EQ(parser.current_column_empty(), expected.size() == 0ul);
+            EXPECT_EQ(parser.current_column_empty(), expected.empty());
 
             EXPECT_EQ(parser.current_column(), expected);
         };
@@ -452,7 +451,7 @@ namespace fastcsv::detail::tests
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
             EXPECT_EQ(parser.current_column_size(), expected.size());
-            EXPECT_EQ(parser.current_column_empty(), expected.size() == 0ul);
+            EXPECT_EQ(parser.current_column_empty(), expected.empty());
 
             EXPECT_EQ(parser.current_column(), expected);
         };
@@ -486,7 +485,7 @@ namespace fastcsv::detail::tests
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
             EXPECT_EQ(parser.current_column_size(), expected.size());
-            EXPECT_EQ(parser.current_column_empty(), expected.size() == 0ul);
+            EXPECT_EQ(parser.current_column_empty(), expected.empty());
 
             EXPECT_EQ(parser.current_column(), expected);
         };
@@ -523,7 +522,7 @@ namespace fastcsv::detail::tests
             EXPECT_EQ(parser.end_of_file(), isEndOfFile);
 
             EXPECT_EQ(parser.current_column_size(), expected.size());
-            EXPECT_EQ(parser.current_column_empty(), expected.size() == 0ul);
+            EXPECT_EQ(parser.current_column_empty(), expected.empty());
 
             EXPECT_EQ(parser.current_column(), expected);
         };

@@ -15,11 +15,11 @@
 // Detect the compiler
 #if (defined(_MSC_VER) && !defined(__clang))
     #define FASTCSV_COMPILER_MSVC
-    #define FASTCSV_COMPILER_MSVC_VERSION = _MSC_VER
+    #define FASTCSV_COMPILER_MSVC_VERSION _MSC_VER
 #elif defined(__GNUC__)
     #define FASTCSV_COMPILER_GCC
-    #define FASTCSV_COMPILER_GCC_MAJOR = __GNUC__
-    #define FASTCSV_COMPILER_GCC_MINOR = __GNUC_MINOR__
+    #define FASTCSV_COMPILER_GCC_MAJOR __GNUC__
+    #define FASTCSV_COMPILER_GCC_MINOR __GNUC_MINOR__
 #elif defined(__clang__)
     #define FASTCSV_COMPILER_CLANG
 #else
@@ -36,13 +36,20 @@
         #define FASTCSV_STD_LANG 0L
     #endif  // ^^^ no C++ support ^^^
 
-    #if FASTCSV_STD_LANG > 201703L
+    #if defined(FASTCSV_COMPILER_GCC)
+        #define FASTCSV_CXX20_VERSION 201709L
+    #else
+        #define FASTCSV_CXX20_VERSION 201703L
+    #endif
+
+    #if FASTCSV_STD_LANG > FASTCSV_CXX20_VERSION
         #define FASTCSV_HAS_CXX20
     #endif
     #if FASTCSV_STD_LANG > 201402L
         #define FASTCSV_HAS_CXX17
     #endif
 
+    #undef FASTCSV_CXX20_VERSION
     #undef FASTCSV_STD_LANG
 #endif
 
@@ -90,6 +97,9 @@
 #include <vector>
 
 
+using namespace std::string_view_literals;
+
+
 namespace fastcsv
 {
 
@@ -131,7 +141,7 @@ namespace fastcsv
         template <typename TElem, typename TTraits = std::char_traits<TElem>>
         inline constexpr std::basic_string_view<TElem, TTraits> csv_extension;
 
-        template <> inline constexpr std::string_view csv_extension<char> = ".csv";
+        template <> inline constexpr std::string_view csv_extension<char> = ".csv"sv;
         template <> inline constexpr std::wstring_view csv_extension<wchar_t> = LR"(.csv)";
 
 
@@ -173,7 +183,7 @@ namespace fastcsv
         template <typename TElem, typename TTraits = std::char_traits<TElem>>
         inline constexpr std::basic_string_view<TElem, TTraits> caridge_return_new_line;
 
-        template <> inline constexpr std::string_view caridge_return_new_line<char> = "\r\n";
+        template <> inline constexpr std::string_view caridge_return_new_line<char> = "\r\n"sv;
         template <> inline constexpr std::wstring_view caridge_return_new_line<wchar_t> = LR"(\r\n)";
 
 
@@ -182,7 +192,13 @@ namespace fastcsv
         inline constexpr std::basic_string_view<TElem, TTraits> default_line_delimiter = caridge_return_new_line<TElem, TTraits>;
 #else
         template <typename TElem, typename TTraits = std::char_traits<TElem>>
-        inline constexpr std::basic_string_view<TElem, TTraits> default_line_delimiter = new_line<TElem, TTraits>;
+        inline constexpr std::basic_string_view<TElem, TTraits> default_line_delimiter;
+
+        template <>
+        inline constexpr std::basic_string_view<char, std::char_traits<char>> default_line_delimiter<char, std::char_traits<char>> = "\n"sv;
+
+        template <>
+        inline constexpr std::basic_string_view<wchar_t, std::char_traits<wchar_t>> default_line_delimiter<wchar_t, std::char_traits<wchar_t>> = LR"(\n)";
 #endif
         // clang-format on
 
@@ -213,19 +229,25 @@ namespace fastcsv
               , columnEnd_(find_column_end(columnStart_))
             { }
 
-            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR bool end_of_line()
+            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR bool end_of_line() const
             {
                 return columnStart_ == content_.size()
                        || content_[columnStart_] == new_line<TElem> || content_[columnStart_] == caridge_return<TElem>;
             }
 
-            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR bool end_of_file() { return lineStart_ == content_.size(); }
+            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR bool is_final_column() const
+            {
+                return columnStart_ == content_.size()
+                       || content_[columnEnd_] == new_line<TElem> || content_[columnEnd_] == caridge_return<TElem>;
+            }
 
-            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR size_t current_column_size() { return columnEnd_ - columnStart_; }
+            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR bool end_of_file() const { return lineStart_ == content_.size(); }
 
-            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR bool current_column_empty() { return current_column_size() == 0ul; }
+            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR size_t current_column_size() const { return columnEnd_ - columnStart_; }
 
-            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR std::basic_string_view<TElem, TTraits> current_column()
+            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR bool current_column_empty() const { return current_column_size() == 0ul; }
+
+            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR std::basic_string_view<TElem, TTraits> current_column() const
             {
                 if (columnStart_ == content_.size()) { return std::basic_string_view<TElem, TTraits>(); }
 
@@ -258,7 +280,7 @@ namespace fastcsv
                     return false;
                 }
 
-                auto advanceChars
+                const auto advanceChars
                     = 1ul
                       + static_cast<size_t>(
                           content_[columnEnd_] == caridge_return<TElem> && columnEnd_ + 1ul < content_.size()
@@ -278,7 +300,7 @@ namespace fastcsv
             }
 
         private:
-            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR size_t find_column_end(size_t pos)
+            FASTCSV_NO_DISCARD FASTCSV_CONSTEXPR size_t find_column_end(size_t pos) const
             {
                 if (pos >= content_.size()) { return content_.size(); }
 
@@ -484,7 +506,7 @@ namespace fastcsv
     struct from_csv<T, std::enable_if_t<detail::has_from_chars_integral_v<T>>, TElem, TTraits> final
       : basic_csv_reader<TElem, TTraits>
     {
-        FASTCSV_NO_DISCARD inline T operator()(const int base = 10) const
+        FASTCSV_NO_DISCARD inline T operator()([[maybe_unused]] const int base = 10) const
         {
             auto element = this->parser.consume_column();
             return parse(element);
@@ -661,14 +683,14 @@ namespace fastcsv
         FASTCSV_NO_DISCARD inline std::tuple<Ts...> operator()() const { return apply<Ts...>(); }
 
     private:
-        template <typename T, typename... Ts>
-        FASTCSV_NO_DISCARD inline std::tuple<T, Ts...> apply() const
+        template <typename T, typename... Tss>
+        FASTCSV_NO_DISCARD inline std::tuple<T, Tss...> apply() const
         {
-            if constexpr (sizeof...(Ts) == 0ul) { return std::make_tuple<T>(read<T>()); }
+            if constexpr (sizeof...(Tss) == 0ul) { return std::make_tuple<T>(read<T>()); }
             else
             {
                 auto leftArg = read<T>();
-                return std::make_tuple<T, Ts...>(std::move(leftArg), std::get<Ts>(apply<Ts...>())...);
+                return std::make_tuple<T, Tss...>(std::move(leftArg), std::get<Tss>(apply<Tss...>())...);
             }
         }
     };
@@ -681,7 +703,7 @@ namespace fastcsv
             auto result = std::array<T, N>{};
             for (auto i = 0ul; i < N; ++i)
             {
-                result[i] = this->read<T>();
+                result[i] = this->template read<T>();
             }
             return result;
         }
@@ -809,14 +831,14 @@ namespace fastcsv
         inline void operator()(const std::tuple<Ts...> & value) { apply(value); }
 
     private:
-        template <size_t I = 0u, typename... Ts>
-        inline void apply(const std::tuple<Ts...> & value)
+        template <size_t I = 0u, typename... Tss>
+        inline void apply(const std::tuple<Tss...> & value)
         {
-            if constexpr (I == sizeof...(Ts)) { return; }
+            if constexpr (I == sizeof...(Tss)) { return; }
             else
             {
                 write(std::get<I>(value));
-                apply<I + 1u, Ts...>(value);
+                apply<I + 1u, Tss...>(value);
             }
         }
     };
@@ -828,7 +850,7 @@ namespace fastcsv
         {
             for (auto i = 0ul; i < N; ++i)
             {
-                this->write<T>(value[i]);
+                this->template write<T>(value[i]);
             }
         }
     };
@@ -979,7 +1001,7 @@ namespace fastcsv
         typename TAdapter,
         std::enable_if_t<detail::is_adapter_v<TAdapter, TIntermediate, T>> * = nullptr>
 #endif
-    FASTCSV_NO_DISCARD void write_csv(
+    void write_csv(
         std::ostream & os,
         const std::vector<T> & data,
         TAdapter adapter,
@@ -1012,7 +1034,7 @@ namespace fastcsv
     }
 
     template <typename T>
-    FASTCSV_NO_DISCARD void write_csv(
+    void write_csv(
         std::ostream & os,
         const std::vector<T> & data,
         std::optional<detail::no_header_tag> noHeaderOption = std::nullopt)
@@ -1120,7 +1142,7 @@ namespace fastcsv
     // ToDo: load_csv_v
 
     template <typename... Ts>
-    FASTCSV_NO_DISCARD void write_csv_v(
+    void write_csv_v(
         std::ostream & os, const std::vector<std::string_view> & headers, const std::vector<Ts> &... vectors)
     {
         if (!headers.empty())
@@ -1141,7 +1163,7 @@ namespace fastcsv
 
         // fold to get the minimal vector size: https://www.foonathan.net/2020/05/fold-tricks/
         auto minSize = (vectors, ...).size();
-        ((vectors.size() < minSize ? minSize, 0 : 0), ...);
+        ((vectors.size() < minSize ? minSize, 0ul : 0ul), ...);
 
         for (auto i = 0ul; i < minSize; ++i)
         {
@@ -1181,7 +1203,7 @@ namespace fastcsv
         }
 
         auto file = std::ofstream(filePath, std::ios::out | std::ios::binary);
-        write_csv_v(file, {}, vectors);
+        write_csv_v<Ts...>(file, {}, vectors...);
     }
 
     template <typename... Ts>
@@ -1200,7 +1222,7 @@ namespace fastcsv
         }
 
         auto file = std::ofstream(filePath, std::ios::out | std::ios::binary);
-        write_csv_v(file, headers, vectors);
+        write_csv_v<Ts...>(file, headers, vectors...);
     }
 
 }  // namespace fastcsv
